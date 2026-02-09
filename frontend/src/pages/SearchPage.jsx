@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 
 export default function SearchPage() {
+  // Reservation form
   const [form, setForm] = useState({
     reservationNumber: "",
     guestName: "",
@@ -10,10 +11,23 @@ export default function SearchPage() {
     roomType: "STANDARD",
   });
 
+  // Modals
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
+  // Auth forms (UI only for now)
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [registerForm, setRegisterForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = async () => {
+  const handleReservation = async () => {
     try {
       await axios.post("http://localhost:5000/api/reservations", {
         ...form,
@@ -26,6 +40,34 @@ export default function SearchPage() {
     }
   };
 
+  // Login/Register (UI only)
+  const submitLogin = () => {
+    if (!loginForm.email || !loginForm.password) {
+      alert("Please fill email & password");
+      return;
+    }
+    alert("Login clicked (UI only) ✅");
+    setShowLogin(false);
+  };
+
+  const submitRegister = () => {
+    if (
+      !registerForm.name ||
+      !registerForm.email ||
+      !registerForm.password ||
+      !registerForm.confirmPassword
+    ) {
+      alert("Please fill all fields");
+      return;
+    }
+    if (registerForm.password !== registerForm.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    alert("Register clicked (UI only) ✅");
+    setShowRegister(false);
+  };
+
   return (
     <div style={styles.page}>
       {/* HEADER */}
@@ -33,8 +75,15 @@ export default function SearchPage() {
         <div style={styles.brand}>OceanView.com</div>
 
         <div style={styles.headerRight}>
-          <button style={styles.headerBtnOutline}>Register</button>
-          <button style={styles.headerBtn}>Sign in</button>
+          <button
+            style={styles.headerBtnOutline}
+            onClick={() => setShowRegister(true)}
+          >
+            Register
+          </button>
+          <button style={styles.headerBtn} onClick={() => setShowLogin(true)}>
+            Sign in
+          </button>
         </div>
       </div>
 
@@ -77,11 +126,132 @@ export default function SearchPage() {
             <option>SUITE</option>
           </select>
 
-          <button onClick={handleSubmit} style={styles.reserveBtn}>
+          <button onClick={handleReservation} style={styles.reserveBtn}>
             Search / Reserve
           </button>
         </div>
       </div>
+
+      {/* LOGIN MODAL */}
+      {showLogin && (
+        <div style={styles.overlay} onClick={() => setShowLogin(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={{ margin: 0 }}>Sign in</h2>
+              <button style={styles.closeBtn} onClick={() => setShowLogin(false)}>
+                ✕
+              </button>
+            </div>
+
+            <input
+              style={styles.modalInput}
+              placeholder="Email"
+              value={loginForm.email}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, email: e.target.value })
+              }
+            />
+            <input
+              style={styles.modalInput}
+              type="password"
+              placeholder="Password"
+              value={loginForm.password}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, password: e.target.value })
+              }
+            />
+
+            <button style={styles.modalPrimaryBtn} onClick={submitLogin}>
+              Sign in
+            </button>
+
+            <p style={styles.modalText}>
+              No account?{" "}
+              <span
+                style={styles.link}
+                onClick={() => {
+                  setShowLogin(false);
+                  setShowRegister(true);
+                }}
+              >
+                Register
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* REGISTER MODAL */}
+      {showRegister && (
+        <div style={styles.overlay} onClick={() => setShowRegister(false)}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={{ margin: 0 }}>Register</h2>
+              <button
+                style={styles.closeBtn}
+                onClick={() => setShowRegister(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <input
+              style={styles.modalInput}
+              placeholder="Full Name"
+              value={registerForm.name}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, name: e.target.value })
+              }
+            />
+            <input
+              style={styles.modalInput}
+              placeholder="Email"
+              value={registerForm.email}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, email: e.target.value })
+              }
+            />
+            <input
+              style={styles.modalInput}
+              type="password"
+              placeholder="Password"
+              value={registerForm.password}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, password: e.target.value })
+              }
+            />
+            <input
+              style={styles.modalInput}
+              type="password"
+              placeholder="Confirm Password"
+              value={registerForm.confirmPassword}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  confirmPassword: e.target.value,
+                })
+              }
+            />
+
+            <button style={styles.modalPrimaryBtn} onClick={submitRegister}>
+              Create account
+            </button>
+
+            <p style={styles.modalText}>
+              Already have an account?{" "}
+              <span
+                style={styles.link}
+                onClick={() => {
+                  setShowRegister(false);
+                  setShowLogin(true);
+                }}
+              >
+                Sign in
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -105,10 +275,7 @@ const styles = {
     letterSpacing: "0.5px",
     fontSize: "20px",
   },
-  headerRight: {
-    display: "flex",
-    gap: "10px",
-  },
+  headerRight: { display: "flex", gap: "10px" },
   headerBtnOutline: {
     background: "transparent",
     color: "white",
@@ -163,4 +330,55 @@ const styles = {
     borderRadius: "6px",
     cursor: "pointer",
   },
+
+  // Modal
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+  },
+  modal: {
+    width: "100%",
+    maxWidth: "420px",
+    background: "white",
+    borderRadius: "12px",
+    padding: "18px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+  modalHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "12px",
+  },
+  closeBtn: {
+    border: "none",
+    background: "transparent",
+    fontSize: "18px",
+    cursor: "pointer",
+  },
+  modalInput: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ddd",
+    marginBottom: "10px",
+    outline: "none",
+  },
+  modalPrimaryBtn: {
+    width: "100%",
+    background: "#0071c2",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    marginTop: "6px",
+  },
+  modalText: { marginTop: "10px", marginBottom: 0, fontSize: "14px" },
+  link: { color: "#0071c2", cursor: "pointer", fontWeight: 600 },
 };
