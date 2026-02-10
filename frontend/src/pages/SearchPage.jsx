@@ -1,8 +1,41 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebookF, FaApple } from "react-icons/fa";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const ROOMS = [
+  {
+    id: "STANDARD",
+    name: "Standard Room",
+    price: 8500,
+    desc: "Cozy room with essentials, perfect for short stays.",
+    image:
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=60",
+  },
+  {
+    id: "DELUXE",
+    name: "Deluxe Room",
+    price: 13500,
+    desc: "Sea-view balcony, bigger space, premium comfort.",
+    image:
+      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1200&q=60",
+  },
+  {
+    id: "SUITE",
+    name: "Suite",
+    price: 22000,
+    desc: "Luxury suite with living area, best for families.",
+    image:
+      "https://images.unsplash.com/photo-1501117716987-c8e1ecb210c2?auto=format&fit=crop&w=1200&q=60",
+  },
+];
 
 export default function SearchPage() {
-  // Reservation form
+ 
+  const [user, setUser] = useState(null);
+
   const [form, setForm] = useState({
     reservationNumber: "",
     guestName: "",
@@ -11,11 +44,9 @@ export default function SearchPage() {
     roomType: "STANDARD",
   });
 
-  // Modals
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
-  // Auth forms (UI only for now)
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({
     name: "",
@@ -24,111 +55,198 @@ export default function SearchPage() {
     confirmPassword: "",
   });
 
+  const selectedRoom = useMemo(
+    () => ROOMS.find((r) => r.id === form.roomType) || ROOMS[0],
+    [form.roomType]
+  );
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleReservation = async () => {
+  // ✅ LOGIN
+  const submitLogin = async () => {
     try {
-      await axios.post("http://localhost:5000/api/reservations", {
-        ...form,
-        address: "Colombo",
-        contactNumber: "0771234567",
-      });
-      alert("Reservation Added ✅");
+      if (!loginForm.email || !loginForm.password)
+        return alert("Please fill email & password");
+
+      const res = await axios.post(`${API_URL}/api/auth/login`, loginForm);
+
+      localStorage.setItem("token", res.data.token);
+      setUser({ email: loginForm.email });
+
+      alert("Login success ✅");
+      setShowLogin(false);
     } catch (err) {
-      alert(err.response?.data?.message || "Error");
+      alert(err.response?.data?.message || "Login error");
     }
   };
 
-  // Login/Register (UI only)
-  const submitLogin = () => {
-    if (!loginForm.email || !loginForm.password) {
-      alert("Please fill email & password");
-      return;
+  // ✅ REGISTER
+  const submitRegister = async () => {
+    try {
+      const { name, email, password, confirmPassword } = registerForm;
+
+      if (!name || !email || !password || !confirmPassword)
+        return alert("All fields are required");
+
+      if (password !== confirmPassword)
+        return alert("Passwords do not match");
+
+      const res = await axios.post(`${API_URL}/api/auth/register`, {
+        name,
+        email,
+        password,
+        confirmPassword, // backend require නම් ok
+      });
+
+      alert(res.data?.message || "Register success ✅");
+      setShowRegister(false);
+
+      // optional: open login modal after register
+      setShowLogin(true);
+    } catch (err) {
+      alert(err.response?.data?.message || "Register error");
     }
-    alert("Login clicked (UI only) ✅");
-    setShowLogin(false);
   };
 
-  const submitRegister = () => {
-    if (
-      !registerForm.name ||
-      !registerForm.email ||
-      !registerForm.password ||
-      !registerForm.confirmPassword
-    ) {
-      alert("Please fill all fields");
-      return;
-    }
-    if (registerForm.password !== registerForm.confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-    alert("Register clicked (UI only) ✅");
-    setShowRegister(false);
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    alert("Logged out ✅");
   };
+
+  // ✅ Restore user (ONLY if token exists)
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    if (t) setUser({ email: "logged-in" });
+  }, []);
 
   return (
     <div style={styles.page}>
       {/* HEADER */}
       <div style={styles.header}>
-        <div style={styles.brand}>OceanView.com</div>
+        <div style={styles.brand}>OceanView</div>
 
         <div style={styles.headerRight}>
-          <button
-            style={styles.headerBtnOutline}
-            onClick={() => setShowRegister(true)}
-          >
-            Register
-          </button>
-          <button style={styles.headerBtn} onClick={() => setShowLogin(true)}>
-            Sign in
-          </button>
+          {user ? (
+            <>
+              <span style={styles.userChip}>✅ Logged in</span>
+              <button style={styles.headerBtnOutline} onClick={logout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                style={styles.headerBtnOutline}
+                onClick={() => setShowRegister(true)}
+              >
+                Register
+              </button>
+              <button
+                style={styles.headerBtn}
+                onClick={() => setShowLogin(true)}
+              >
+                Sign in
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* HERO */}
-      <div style={styles.hero}>
-        <h1 style={styles.heroTitle}>Ocean View Resort</h1>
-        <p style={styles.heroSub}>
-          Book your stay with best prices and simple reservation.
-        </p>
+      <div style={styles.heroWrap}>
+        <div style={styles.heroBg} />
+        <div style={styles.heroOverlay} />
 
-        {/* SEARCH BOX */}
-        <div style={styles.box}>
-          <input
-            name="reservationNumber"
-            placeholder="Reservation No"
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            name="guestName"
-            placeholder="Guest Name"
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            type="date"
-            name="checkInDate"
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            type="date"
-            name="checkOutDate"
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <select name="roomType" onChange={handleChange} style={styles.input}>
-            <option>STANDARD</option>
-            <option>DELUXE</option>
-            <option>SUITE</option>
-          </select>
+        <div style={styles.heroContent}>
+          <div style={styles.heroLeft}>
+            <h1 style={styles.heroTitle}>Ocean View Resort</h1>
+            <p style={styles.heroSub}>
+              Discover your perfect stay — select dates, choose room type, reserve.
+            </p>
 
-          <button onClick={handleReservation} style={styles.reserveBtn}>
-            Search / Reserve
-          </button>
+            <div style={styles.box}>
+              <input
+                name="checkInDate"
+                type="date"
+                value={form.checkInDate}
+                onChange={handleChange}
+                style={styles.input}
+              />
+              <input
+                name="checkOutDate"
+                type="date"
+                value={form.checkOutDate}
+                onChange={handleChange}
+                style={styles.input}
+              />
+
+              <select
+                name="roomType"
+                value={form.roomType}
+                onChange={handleChange}
+                style={styles.input}
+              >
+                <option value="STANDARD">STANDARD</option>
+                <option value="DELUXE">DELUXE</option>
+                <option value="SUITE">SUITE</option>
+              </select>
+
+              <button
+                onClick={() =>
+                  alert(
+                    `Search later ✅ (${selectedRoom.name}) from ${form.checkInDate} to ${form.checkOutDate}`
+                  )
+                }
+                style={styles.reserveBtn}
+              >
+                Search
+              </button>
+            </div>
+
+            <div style={styles.selectedRoomNote}>
+              Selected: <b>{selectedRoom.name}</b> — LKR{" "}
+              {selectedRoom.price.toLocaleString()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ROOMS SECTION */}
+      <div style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <h2 style={styles.sectionTitle}>Our Rooms</h2>
+          <p style={styles.sectionSub}>Pick a room type.</p>
+        </div>
+
+        <div style={styles.roomGrid}>
+          {ROOMS.map((room) => (
+            <div key={room.id} style={styles.roomCard}>
+              <div
+                style={{
+                  ...styles.roomImg,
+                  backgroundImage: `url(${room.image})`,
+                }}
+              />
+              <div style={styles.roomBody}>
+                <div style={styles.roomTopRow}>
+                  <h3 style={styles.roomName}>{room.name}</h3>
+                  <span style={styles.roomPrice}>
+                    LKR {room.price.toLocaleString()}
+                  </span>
+                </div>
+                <p style={styles.roomDesc}>{room.desc}</p>
+
+                <button
+                  style={styles.roomPrimaryBtn}
+                  onClick={() => setForm((p) => ({ ...p, roomType: room.id }))}
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -165,18 +283,17 @@ export default function SearchPage() {
               Sign in
             </button>
 
-            <p style={styles.modalText}>
-              No account?{" "}
-              <span
-                style={styles.link}
-                onClick={() => {
-                  setShowLogin(false);
-                  setShowRegister(true);
-                }}
-              >
-                Register
-              </span>
-            </p>
+            <div style={styles.socialRow}>
+              <button style={styles.socialBtn} onClick={() => alert("Google later ✅")}>
+                <FcGoogle size={26} />
+              </button>
+              <button style={styles.socialBtn} onClick={() => alert("Apple later ✅")}>
+                <FaApple size={24} />
+              </button>
+              <button style={styles.socialBtn} onClick={() => alert("Facebook later ✅")}>
+                <FaFacebookF size={22} color="#1877f2" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -187,10 +304,7 @@ export default function SearchPage() {
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h2 style={{ margin: 0 }}>Register</h2>
-              <button
-                style={styles.closeBtn}
-                onClick={() => setShowRegister(false)}
-              >
+              <button style={styles.closeBtn} onClick={() => setShowRegister(false)}>
                 ✕
               </button>
             </div>
@@ -236,19 +350,6 @@ export default function SearchPage() {
             <button style={styles.modalPrimaryBtn} onClick={submitRegister}>
               Create account
             </button>
-
-            <p style={styles.modalText}>
-              Already have an account?{" "}
-              <span
-                style={styles.link}
-                onClick={() => {
-                  setShowRegister(false);
-                  setShowLogin(true);
-                }}
-              >
-                Sign in
-              </span>
-            </p>
           </div>
         </div>
       )}
@@ -257,128 +358,105 @@ export default function SearchPage() {
 }
 
 const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "linear-gradient(120deg,#0f2027,#203a43,#2c5364)",
-  },
-
+  page: { minHeight: "100vh", width: "100vw", overflowX: "hidden", background: "#0b1220", backgroundSize: "cover", backgroundPosition: "center" },
   header: {
-    height: "64px",
+    height: "70px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 24px",
+    padding: "0 22px",
     color: "white",
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    background: "rgba(11,18,32,0.55)",
+    backdropFilter: "blur(10px)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
-  brand: {
-    fontWeight: 700,
-    letterSpacing: "0.5px",
-    fontSize: "20px",
+  brand: { fontWeight: 800, fontSize: "20px" },
+  headerRight: { display: "flex", gap: "10px", alignItems: "center" },
+  userChip: {
+    fontSize: "12px",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: "rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.12)",
   },
-  headerRight: { display: "flex", gap: "10px" },
   headerBtnOutline: {
     background: "transparent",
     color: "white",
-    border: "1px solid rgba(255,255,255,0.6)",
-    padding: "8px 14px",
-    borderRadius: "6px",
+    border: "1px solid rgba(255,255,255,0.45)",
+    padding: "9px 14px",
+    borderRadius: "10px",
     cursor: "pointer",
   },
   headerBtn: {
-    background: "#0071c2",
+    background: "linear-gradient(135deg,#22c55e,#16a34a)",
     color: "white",
     border: "none",
-    padding: "8px 14px",
-    borderRadius: "6px",
+    padding: "9px 14px",
+    borderRadius: "10px",
     cursor: "pointer",
+    fontWeight: 700,
   },
 
-  hero: {
-    paddingTop: "80px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    paddingLeft: "20px",
-    paddingRight: "20px",
+  heroWrap: { position: "relative", minHeight: "520px", overflow: "hidden" },
+  heroBg: {
+    position: "absolute",
+    inset: 0,
+    backgroundImage:
+      "url(https://secure.365villas.com/getimage/uploads/config/eden/property/gallery/20/20250602_064322_1929jpg.jpg)",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    transform: "scale(1.03)",
   },
-  heroTitle: { color: "white", marginBottom: "6px" },
-  heroSub: { color: "rgba(255,255,255,0.8)", marginBottom: "22px" },
+  heroOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(90deg, rgba(11,18,32,0.92) 0%, rgba(11,18,32,0.55) 45%, rgba(11,18,32,0.92) 100%)",
+  },
+  heroContent: { position: "relative", zIndex: 2, padding: "72px 18px 50px", display: "flex", justifyContent: "center" },
+  heroLeft: { width: "100%", maxWidth: "1080px", color: "white" },
+  heroTitle: { margin: 0, fontSize: "48px" },
+  heroSub: { marginTop: "10px", marginBottom: "18px", color: "rgba(138, 132, 132, 0.82)", maxWidth: "720px" },
 
   box: {
-    background: "white",
-    padding: "18px",
-    borderRadius: "12px",
+    background: "rgba(192, 185, 185, 0.92)",
+    padding: "14px",
+    borderRadius: "16px",
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.3)",
-    maxWidth: "980px",
+    boxShadow: "0 18px 45px rgba(20, 19, 19, 0.35)",
     width: "100%",
-    justifyContent: "center",
+    alignItems: "center",
   },
-  input: {
-    padding: "10px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    minWidth: "160px",
-  },
-  reserveBtn: {
-    background: "#0071c2",
-    color: "white",
-    padding: "10px 18px",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
+  input: { padding: "11px 12px", borderRadius: "12px", border: "1px solid rgba(10, 9, 9, 0.12)", minWidth: "170px", outline: "none", background: "rgba(192, 185, 185, 0.92)" },
+  reserveBtn: { background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", padding: "11px 18px", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: 800 },
+  selectedRoomNote: { marginTop: "10px", color: "rgba(231, 226, 226, 0.85)", fontSize: "14px" },
 
-  // Modal
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-  },
-  modal: {
-    width: "100%",
-    maxWidth: "420px",
-    background: "white",
-    borderRadius: "12px",
-    padding: "18px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-  },
-  modalHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "12px",
-  },
-  closeBtn: {
-    border: "none",
-    background: "transparent",
-    fontSize: "18px",
-    cursor: "pointer",
-  },
-  modalInput: {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    marginBottom: "10px",
-    outline: "none",
-  },
-  modalPrimaryBtn: {
-    width: "100%",
-    background: "#0071c2",
-    color: "white",
-    padding: "10px",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    marginTop: "6px",
-  },
-  modalText: { marginTop: "10px", marginBottom: 0, fontSize: "14px" },
-  link: { color: "#0071c2", cursor: "pointer", fontWeight: 600 },
+  section: { padding: "40px 18px 70px", maxWidth: "1080px", margin: "0 auto" },
+  sectionHeader: { marginBottom: "18px" },
+  sectionTitle: { color: "white", margin: 0, fontSize: "28px" },
+  sectionSub: { color: "rgba(255,255,255,0.70)", marginTop: "8px" },
+
+  roomGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" },
+  roomCard: { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: "18px", overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.28)" },
+  roomImg: { height: "170px", backgroundSize: "cover", backgroundPosition: "center" },
+  roomBody: { padding: "14px" },
+  roomTopRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" },
+  roomName: { color: "white", margin: 0, fontSize: "18px" },
+  roomPrice: { color: "rgba(255,255,255,0.85)", fontWeight: 800, fontSize: "14px" },
+  roomDesc: { color: "rgba(255,255,255,0.72)", fontSize: "13px", lineHeight: 1.4, marginTop: "8px", marginBottom: "12px" },
+  roomPrimaryBtn: { width: "100%", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", border: "none", padding: "10px", borderRadius: "12px", cursor: "pointer", fontWeight: 800 },
+
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.70)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", zIndex: 100 },
+  modal: { width: "100%", maxWidth: "420px", background: "white", borderRadius: "16px", padding: "18px", boxShadow: "0 18px 45px rgba(0,0,0,0.45)" },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" },
+  closeBtn: { border: "none", background: "transparent", fontSize: "18px", cursor: "pointer" },
+  modalInput: { width: "100%", padding: "10px", borderRadius: "12px", border: "1px solid #e5e7eb", marginBottom: "10px", outline: "none" },
+  modalPrimaryBtn: { width: "100%", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", padding: "11px", border: "none", borderRadius: "12px", cursor: "pointer", marginTop: "6px", fontWeight: 900 },
+  socialRow: { display: "flex", justifyContent: "center", gap: "14px", marginTop: "12px" },
+  socialBtn: { width: "56px", height: "56px", borderRadius: "14px", border: "1px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
 };
