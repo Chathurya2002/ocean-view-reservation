@@ -1,462 +1,253 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF, FaApple } from "react-icons/fa";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "../components/Layout";
+import { FaCalendarAlt, FaUser, FaBed, FaSearch, FaArrowRight } from "react-icons/fa";
 
 const ROOMS = [
   {
     id: "STANDARD",
-    name: "Standard Room",
-    price: 8500,
-    desc: "Cozy room with essentials, perfect for short stays.",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=60",
+    name: "Standard Coastal",
+    desc: "Cozy rooms perfectly suited for those who appreciate the sound of waves.",
+    image: "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=60",
   },
   {
     id: "DELUXE",
-    name: "Deluxe Room",
-    price: 13500,
-    desc: "Sea-view balcony, bigger space, premium comfort.",
-    image:
-      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1200&q=60",
+    name: "Ocean Deluxe",
+    desc: "Spacious deluxe rooms with a private balcony overlooking the deep blue.",
+    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f244?auto=format&fit=crop&w=800&q=60",
   },
   {
     id: "SUITE",
-    name: "Suite",
-    price: 22000,
-    desc: "Luxury suite with living area, best for families.",
-    image:
-      "https://images.unsplash.com/photo-1501117716987-c8e1ecb210c2?auto=format&fit=crop&w=1200&q=60",
+    name: "Family Suite",
+    desc: "Two-bedroom suites designed for families seeking luxury and connection.",
+    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=60",
   },
+  {
+    id: "PRESIDENTIAL",
+    name: "Royal Presidential",
+    desc: "The pinnacle of our resort. Unmatched views and bespoke service.",
+    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=60"
+  }
 ];
 
 export default function SearchPage() {
- 
-  const [user, setUser] = useState(null);
-
+  const navigate = useNavigate();
   const [form, setForm] = useState({
-    reservationNumber: "",
-    guestName: "",
     checkInDate: "",
     checkOutDate: "",
     roomType: "STANDARD",
+    guests: "2"
   });
 
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const selectedRoom = useMemo(
-    () => ROOMS.find((r) => r.id === form.roomType) || ROOMS[0],
-    [form.roomType]
-  );
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  // ✅ LOGIN
-  const submitLogin = async () => {
-    try {
-      if (!loginForm.email || !loginForm.password)
-        return alert("Please fill email & password");
-
-      const res = await axios.post(`${API_URL}/api/auth/login`, loginForm);
-
-      localStorage.setItem("token", res.data.token);
-      setUser({ email: loginForm.email });
-
-      alert("Login success ✅");
-      setShowLogin(false);
-    } catch (err) {
-      alert(err.response?.data?.message || "Login error");
+  const handleSearch = () => {
+    if (!form.checkInDate || !form.checkOutDate) {
+      return alert("📅 Please select both check-in and check-out dates to continue.");
     }
+    navigate(`/rooms?checkIn=${form.checkInDate}&checkOut=${form.checkOutDate}&roomType=${form.roomType}&guests=${form.guests}`);
   };
-
-  // ✅ REGISTER
-  const submitRegister = async () => {
-    try {
-      const { name, email, password, confirmPassword } = registerForm;
-
-      if (!name || !email || !password || !confirmPassword)
-        return alert("All fields are required");
-
-      if (password !== confirmPassword)
-        return alert("Passwords do not match");
-
-      const res = await axios.post(`${API_URL}/api/auth/register`, {
-        name,
-        email,
-        password,
-        confirmPassword, // backend require නම් ok
-      });
-
-      alert(res.data?.message || "Register success ✅");
-      setShowRegister(false);
-
-      // optional: open login modal after register
-      setShowLogin(true);
-    } catch (err) {
-      alert(err.response?.data?.message || "Register error");
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    alert("Logged out ✅");
-  };
-
-  // ✅ Restore user (ONLY if token exists)
-  useEffect(() => {
-    const t = localStorage.getItem("token");
-    if (t) setUser({ email: "logged-in" });
-  }, []);
 
   return (
-    <div style={styles.page}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <div style={styles.brand}>OceanView</div>
-
-        <div style={styles.headerRight}>
-          {user ? (
-            <>
-              <span style={styles.userChip}>✅ Logged in</span>
-              <button style={styles.headerBtnOutline} onClick={logout}>
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                style={styles.headerBtnOutline}
-                onClick={() => setShowRegister(true)}
-              >
-                Register
-              </button>
-              <button
-                style={styles.headerBtn}
-                onClick={() => setShowLogin(true)}
-              >
-                Sign in
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* HERO */}
-      <div style={styles.heroWrap}>
-        <div style={styles.heroBg} />
-        <div style={styles.heroOverlay} />
-
+    <Layout>
+      {/* HERO SECTION */}
+      <section style={styles.hero}>
         <div style={styles.heroContent}>
-          <div style={styles.heroLeft}>
-            <h1 style={styles.heroTitle}>Ocean View Resort</h1>
-            <p style={styles.heroSub}>
-              Discover your perfect stay — select dates, choose room type, reserve.
-            </p>
+          <div style={styles.badge}>✨ The Ultimate Escape</div>
+          <h1 style={styles.heroTitle}>Refining <span style={styles.highlight}>Summer</span> Luxury</h1>
+          <p style={styles.heroSub}>
+            Book your stay at Ocean View and discover a new dimension of coastal tranquility.
+          </p>
 
-            <div style={styles.box}>
-              <input
-                name="checkInDate"
-                type="date"
-                value={form.checkInDate}
-                onChange={handleChange}
-                style={styles.input}
-              />
-              <input
-                name="checkOutDate"
-                type="date"
-                value={form.checkOutDate}
-                onChange={handleChange}
-                style={styles.input}
-              />
-
-              <select
-                name="roomType"
-                value={form.roomType}
-                onChange={handleChange}
-                style={styles.input}
-              >
-                <option value="STANDARD">STANDARD</option>
-                <option value="DELUXE">DELUXE</option>
-                <option value="SUITE">SUITE</option>
-              </select>
-
-              <button
-                onClick={() =>
-                  alert(
-                    `Search later ✅ (${selectedRoom.name}) from ${form.checkInDate} to ${form.checkOutDate}`
-                  )
-                }
-                style={styles.reserveBtn}
-              >
-                Search
+          <div style={styles.searchContainer}>
+            <div style={styles.searchBox}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}><FaCalendarAlt /> Check-in</label>
+                <input name="checkInDate" type="date" value={form.checkInDate} onChange={handleChange} style={styles.input} />
+              </div>
+              <div style={styles.divider} />
+              <div style={styles.inputGroup}>
+                <label style={styles.label}><FaCalendarAlt /> Check-out</label>
+                <input name="checkOutDate" type="date" value={form.checkOutDate} onChange={handleChange} style={styles.input} />
+              </div>
+              <div style={styles.divider} />
+              <div style={styles.inputGroup}>
+                <label style={styles.label}><FaUser /> Guests</label>
+                <select name="guests" value={form.guests} onChange={handleChange} style={styles.select}>
+                  <option value="1">1 Guest</option>
+                  <option value="2">2 Guests</option>
+                  <option value="3">3 Guests</option>
+                  <option value="4">4+ Guests</option>
+                </select>
+              </div>
+              <div style={styles.divider} />
+              <div style={styles.inputGroup}>
+                <label style={styles.label}><FaBed /> Category</label>
+                <select name="roomType" value={form.roomType} onChange={handleChange} style={styles.select}>
+                  <option value="STANDARD">Standard</option>
+                  <option value="DELUXE">Deluxe</option>
+                  <option value="SUITE">Suite</option>
+                  <option value="PRESIDENTIAL">Presidential</option>
+                </select>
+              </div>
+              <button onClick={handleSearch} style={styles.searchBtn}>
+                <FaSearch /> Check Availability
               </button>
-            </div>
-
-            <div style={styles.selectedRoomNote}>
-              Selected: <b>{selectedRoom.name}</b> — LKR{" "}
-              {selectedRoom.price.toLocaleString()}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ROOMS SECTION */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Our Rooms</h2>
-          <p style={styles.sectionSub}>Pick a room type.</p>
+      {/* ROOM CATEGORIES */}
+      <section style={styles.section}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Refined Accommodations</h2>
+          <p style={styles.sub}>Carefully designed spaces to ensure your absolute comfort.</p>
         </div>
 
-        <div style={styles.roomGrid}>
+        <div style={styles.grid}>
           {ROOMS.map((room) => (
-            <div key={room.id} style={styles.roomCard}>
-              <div
-                style={{
-                  ...styles.roomImg,
-                  backgroundImage: `url(${room.image})`,
-                }}
-              />
-              <div style={styles.roomBody}>
-                <div style={styles.roomTopRow}>
-                  <h3 style={styles.roomName}>{room.name}</h3>
-                  <span style={styles.roomPrice}>
-                    LKR {room.price.toLocaleString()}
-                  </span>
+            <div key={room.id} style={styles.card} onClick={() => navigate(`/rooms?roomType=${room.id}`)}>
+              <div style={{ ...styles.cardImg, backgroundImage: `url(${room.image})` }}>
+                <div style={styles.overlay}>
+                  <button style={styles.viewBtn}>View <FaArrowRight size={10} /></button>
                 </div>
-                <p style={styles.roomDesc}>{room.desc}</p>
-
-                <button
-                  style={styles.roomPrimaryBtn}
-                  onClick={() => setForm((p) => ({ ...p, roomType: room.id }))}
-                >
-                  Select
-                </button>
+              </div>
+              <div style={styles.cardBody}>
+                <h3 style={styles.cardName}>{room.name}</h3>
+                <p style={styles.cardDesc}>{room.desc}</p>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* LOGIN MODAL */}
-      {showLogin && (
-        <div style={styles.overlay} onClick={() => setShowLogin(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h2 style={{ margin: 0 }}>Sign in</h2>
-              <button style={styles.closeBtn} onClick={() => setShowLogin(false)}>
-                ✕
-              </button>
-            </div>
-
-            <input
-              style={styles.modalInput}
-              placeholder="Email"
-              value={loginForm.email}
-              onChange={(e) =>
-                setLoginForm({ ...loginForm, email: e.target.value })
-              }
-            />
-            <input
-              style={styles.modalInput}
-              type="password"
-              placeholder="Password"
-              value={loginForm.password}
-              onChange={(e) =>
-                setLoginForm({ ...loginForm, password: e.target.value })
-              }
-            />
-
-            <button style={styles.modalPrimaryBtn} onClick={submitLogin}>
-              Sign in
-            </button>
-
-            <div style={styles.socialRow}>
-              <button style={styles.socialBtn} onClick={() => alert("Google later ✅")}>
-                <FcGoogle size={26} />
-              </button>
-              <button style={styles.socialBtn} onClick={() => alert("Apple later ✅")}>
-                <FaApple size={24} />
-              </button>
-              <button style={styles.socialBtn} onClick={() => alert("Facebook later ✅")}>
-                <FaFacebookF size={22} color="#1877f2" />
-              </button>
-            </div>
+      {/* FEATURES SECTION */}
+      <section style={styles.features}>
+        <div style={styles.featContent}>
+          <div style={styles.featItem}>
+            <div style={styles.featIcon}>🌊</div>
+            <h4>Private Beach</h4>
+            <p>Access to over 2km of pristine, private white sand beach.</p>
+          </div>
+          <div style={styles.featItem}>
+            <div style={styles.featIcon}>🍽️</div>
+            <h4>Fine Dining</h4>
+            <p>Five world-class restaurants featuring global cuisines.</p>
+          </div>
+          <div style={styles.featItem}>
+            <div style={styles.featIcon}>💆</div>
+            <h4>Royal Spa</h4>
+            <p>Award-winning wellness treatments by the ocean.</p>
           </div>
         </div>
-      )}
-
-      {/* REGISTER MODAL */}
-      {showRegister && (
-        <div style={styles.overlay} onClick={() => setShowRegister(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h2 style={{ margin: 0 }}>Register</h2>
-              <button style={styles.closeBtn} onClick={() => setShowRegister(false)}>
-                ✕
-              </button>
-            </div>
-
-            <input
-              style={styles.modalInput}
-              placeholder="Full Name"
-              value={registerForm.name}
-              onChange={(e) =>
-                setRegisterForm({ ...registerForm, name: e.target.value })
-              }
-            />
-            <input
-              style={styles.modalInput}
-              placeholder="Email"
-              value={registerForm.email}
-              onChange={(e) =>
-                setRegisterForm({ ...registerForm, email: e.target.value })
-              }
-            />
-            <input
-              style={styles.modalInput}
-              type="password"
-              placeholder="Password"
-              value={registerForm.password}
-              onChange={(e) =>
-                setRegisterForm({ ...registerForm, password: e.target.value })
-              }
-            />
-            <input
-              style={styles.modalInput}
-              type="password"
-              placeholder="Confirm Password"
-              value={registerForm.confirmPassword}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  confirmPassword: e.target.value,
-                })
-              }
-            />
-
-            <button style={styles.modalPrimaryBtn} onClick={submitRegister}>
-              Create account
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      </section>
+    </Layout>
   );
 }
 
 const styles = {
-  page: { minHeight: "100vh", width: "100vw", overflowX: "hidden", background: "#0b1220", backgroundSize: "cover", backgroundPosition: "center" },
-  header: {
-    height: "70px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 22px",
-    color: "white",
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-    background: "rgba(11,18,32,0.55)",
-    backdropFilter: "blur(10px)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-  },
-  brand: { fontWeight: 800, fontSize: "20px" },
-  headerRight: { display: "flex", gap: "10px", alignItems: "center" },
-  userChip: {
-    fontSize: "12px",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    background: "rgba(255,255,255,0.10)",
-    border: "1px solid rgba(255,255,255,0.12)",
-  },
-  headerBtnOutline: {
-    background: "transparent",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.45)",
-    padding: "9px 14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-  },
-  headerBtn: {
-    background: "linear-gradient(135deg,#22c55e,#16a34a)",
-    color: "white",
-    border: "none",
-    padding: "9px 14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: 700,
-  },
-
-  heroWrap: { position: "relative", minHeight: "520px", overflow: "hidden" },
-  heroBg: {
-    position: "absolute",
-    inset: 0,
-    backgroundImage:
-      "url(https://secure.365villas.com/getimage/uploads/config/eden/property/gallery/20/20250602_064322_1929jpg.jpg)",
+  hero: {
+    minHeight: "85vh",
+    background: "#858282ff",
+    backgroundImage: "linear-gradient(rgba(150, 217, 245, 0.5),rgba(150, 217, 245, 0.5)), url('https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800')",
     backgroundSize: "cover",
     backgroundPosition: "center",
-    transform: "scale(1.03)",
-  },
-  heroOverlay: {
-    position: "absolute",
-    inset: 0,
-    background:
-      "linear-gradient(90deg, rgba(11,18,32,0.92) 0%, rgba(11,18,32,0.55) 45%, rgba(11,18,32,0.92) 100%)",
-  },
-  heroContent: { position: "relative", zIndex: 2, padding: "72px 18px 50px", display: "flex", justifyContent: "center" },
-  heroLeft: { width: "100%", maxWidth: "1080px", color: "white" },
-  heroTitle: { margin: 0, fontSize: "48px" },
-  heroSub: { marginTop: "10px", marginBottom: "18px", color: "rgba(138, 132, 132, 0.82)", maxWidth: "720px" },
-
-  box: {
-    background: "rgba(192, 185, 185, 0.92)",
-    padding: "14px",
-    borderRadius: "16px",
     display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    boxShadow: "0 18px 45px rgba(20, 19, 19, 0.35)",
-    width: "100%",
     alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    padding: "0 24px"
   },
-  input: { padding: "11px 12px", borderRadius: "12px", border: "1px solid rgba(10, 9, 9, 0.12)", minWidth: "170px", outline: "none", background: "rgba(192, 185, 185, 0.92)" },
-  reserveBtn: { background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", padding: "11px 18px", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: 800 },
-  selectedRoomNote: { marginTop: "10px", color: "rgba(231, 226, 226, 0.85)", fontSize: "14px" },
+  heroContent: { maxWidth: "1000px", width: "100%" },
+  badge: { display: "inline-block", background: "white", padding: "8px 16px", borderRadius: "100px", fontSize: "12px", fontWeight: "800", color: "var(--primary)", boxShadow: "0 4px 12px rgba(44, 43, 43, 0.05)", marginBottom: "24px" },
+  heroTitle: {
+    fontSize: "clamp(3rem, 7vw, 5rem)",
+    fontWeight: "900",
+    color: "var(--secondary)",
+    letterSpacing: "-2px",
+    lineHeight: "1.1",
+    marginBottom: "24px"
+  },
+  highlight: { color: "var(--primary)", position: "relative" },
+  heroSub: {
+    fontSize: "1.2rem",
+    color: "var(--text-dim)",
+    maxWidth: "550px",
+    margin: "0 auto 60px",
+    lineHeight: "1.6"
+  },
 
-  section: { padding: "40px 18px 70px", maxWidth: "1080px", margin: "0 auto" },
-  sectionHeader: { marginBottom: "18px" },
-  sectionTitle: { color: "white", margin: 0, fontSize: "28px" },
-  sectionSub: { color: "rgba(255,255,255,0.70)", marginTop: "8px" },
+  searchContainer: { display: "flex", justifyContent: "center" },
+  searchBox: {
+    background: "white",
+    padding: "10px",
+    borderRadius: "24px",
+    display: "flex",
+    alignItems: "center",
+    boxShadow: "0 20px 50px -12px rgba(0,0,0,0.1)",
+    border: "1px solid rgba(0,0,0,0.05)",
+    maxWidth: "900px",
+    width: "100%",
+    gap: "0"
+  },
+  inputGroup: {
+    flex: 1,
+    padding: "10px 20px",
+    display: "flex",
+    flexDirection: "column",
+    textAlign: "left"
+  },
+  divider: { width: "1px", height: "40px", background: "#e2e8f0" },
+  label: { fontSize: "11px", fontWeight: "800", color: "#94a3b8", display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" },
+  input: { width: "100%", border: "none", background: "transparent", fontSize: "14px", fontWeight: "700", color: "var(--secondary)", outline: "none", padding: "4px 0" },
+  select: { width: "100%", border: "none", background: "transparent", fontSize: "14px", fontWeight: "700", color: "var(--secondary)", outline: "none", padding: "4px 0", cursor: "pointer" },
 
-  roomGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" },
-  roomCard: { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: "18px", overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.28)" },
-  roomImg: { height: "170px", backgroundSize: "cover", backgroundPosition: "center" },
-  roomBody: { padding: "14px" },
-  roomTopRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" },
-  roomName: { color: "white", margin: 0, fontSize: "18px" },
-  roomPrice: { color: "rgba(255,255,255,0.85)", fontWeight: 800, fontSize: "14px" },
-  roomDesc: { color: "rgba(255,255,255,0.72)", fontSize: "13px", lineHeight: 1.4, marginTop: "8px", marginBottom: "12px" },
-  roomPrimaryBtn: { width: "100%", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", border: "none", padding: "10px", borderRadius: "12px", cursor: "pointer", fontWeight: 800 },
+  searchBtn: {
+    background: "var(--primary)",
+    color: "white",
+    padding: "18px 32px",
+    border: "none",
+    borderRadius: "18px",
+    fontWeight: "800",
+    fontSize: "14px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    boxShadow: "0 10px 20px -5px var(--primary-light)",
+    transition: "transform 0.2s",
+    marginLeft: "10px"
+  },
 
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.70)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", zIndex: 100 },
-  modal: { width: "100%", maxWidth: "420px", background: "white", borderRadius: "16px", padding: "18px", boxShadow: "0 18px 45px rgba(0,0,0,0.45)" },
-  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" },
-  closeBtn: { border: "none", background: "transparent", fontSize: "18px", cursor: "pointer" },
-  modalInput: { width: "100%", padding: "10px", borderRadius: "12px", border: "1px solid #e5e7eb", marginBottom: "10px", outline: "none" },
-  modalPrimaryBtn: { width: "100%", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", padding: "11px", border: "none", borderRadius: "12px", cursor: "pointer", marginTop: "6px", fontWeight: 900 },
-  socialRow: { display: "flex", justifyContent: "center", gap: "14px", marginTop: "12px" },
-  socialBtn: { width: "56px", height: "56px", borderRadius: "14px", border: "1px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  section: { padding: "80px 24px", maxWidth: "1200px", margin: "0 auto" },
+  header: { textAlign: "center", marginBottom: "40px" },
+  title: { fontSize: "2.5rem", marginBottom: "12px", fontWeight: "800", letterSpacing: "-1px" },
+  sub: { color: "var(--text-dim)", fontSize: "1.1rem" },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "24px"
+  },
+  card: {
+    background: "white",
+    borderRadius: "20px",
+    overflow: "hidden",
+    border: "1px solid var(--border)",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+    cursor: "pointer",
+    textAlign: "left"
+  },
+  viewBtn: { background: "white", color: "var(--secondary)", padding: "8px 16px", borderRadius: "100px", border: "none", fontWeight: "800", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" },
+  cardBody: { padding: "20px" },
+  cardName: { fontSize: "16px", marginBottom: "6px", color: "var(--secondary)", fontWeight: "800" },
+  cardDesc: { color: "var(--text-dim)", fontSize: "12px", lineHeight: "1.6", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden" },
+
+  features: { padding: "60px 24px", background: "var(--secondary)", color: "white" },
+  featContent: { maxWidth: "1000px", margin: "0 auto", display: "flex", justifyContent: "center", gap: "60px", flexWrap: "wrap" },
+  featItem: { textAlign: "center", maxWidth: "250px" },
+  featIcon: { fontSize: "32px", marginBottom: "16px" },
 };

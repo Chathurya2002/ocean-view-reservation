@@ -1,12 +1,26 @@
 import { Routes, Route } from "react-router-dom";
 import SearchPage from "./pages/SearchPage";
-import AvailableRooms from "./pages/AvailableRooms"; 
+import AvailableRooms from "./pages/AvailableRooms";
+import AboutUs from "./pages/AboutUs";
+import AdminDashboard from "./pages/AdminDashboard";
+import RoomDetails from "./pages/RoomDetails";
+import PaymentPage from "./pages/PaymentPage";
+import ReservationSuccess from "./pages/ReservationSuccess";
+import ProfilePage from "./pages/ProfilePage";
+import ExperiencesPage from "./pages/ExperiencesPage";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<SearchPage />} />
       <Route path="/rooms" element={<AvailableRooms />} />
+      <Route path="/rooms/:id" element={<RoomDetails />} />
+      <Route path="/about" element={<AboutUs />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/payment" element={<PaymentPage />} />
+      <Route path="/success/:id" element={<ReservationSuccess />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/experiences" element={<ExperiencesPage />} />
     </Routes>
   );
 }

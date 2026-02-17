@@ -1,22 +1,23 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
 console.log("SERVER.JS IS RUNNING ✅");
-const roomRoutes = require("./routes/roomRoutes");
+
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
-require("dotenv").config();
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use("/api/rooms", roomRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-
-connectDB();
 console.log("Auth routes loaded ✅");
-
 app.use("/api/auth", authRoutes);
+app.use("/api/rooms", require("./routes/roomRoutes"));
+app.use("/api/experiences", require("./routes/experienceRoutes"));
+app.use("/api/reservations", require("./routes/reservationRoutes"));
 
 app.get("/", (req, res) => {
   res.send("Backend working");
@@ -24,6 +25,13 @@ app.get("/", (req, res) => {
 
 app.get("/api/auth/test", (req, res) => res.json({ ok: true }));
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log("Server running on port 5000");
-});
+
+const start = async () => {
+  await connectDB();
+  const port = process.env.PORT || 5000;
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+};
+
+start();
