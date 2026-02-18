@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import SearchPage from "./pages/SearchPage";
+import RentalsPage from "./pages/RentalsPage";
 import AvailableRooms from "./pages/AvailableRooms";
 import AboutUs from "./pages/AboutUs";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -8,6 +9,7 @@ import PaymentPage from "./pages/PaymentPage";
 import ReservationSuccess from "./pages/ReservationSuccess";
 import ProfilePage from "./pages/ProfilePage";
 import ExperiencesPage from "./pages/ExperiencesPage";
+import HelpPage from "./pages/HelpPage";
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
       <Route path="/success/:id" element={<ReservationSuccess />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/experiences" element={<ExperiencesPage />} />
+      <Route path="/rentals" element={<RentalsPage />} />
+      <Route path="/help" element={<HelpPage />} />
     </Routes>
   );
 }

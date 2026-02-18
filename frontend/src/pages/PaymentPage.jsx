@@ -17,6 +17,7 @@ export default function PaymentPage() {
     const guests = searchParams.get("guests");
     const amount = searchParams.get("amount");
     const experienceIds = searchParams.get("experienceIds") ? searchParams.get("experienceIds").split(",") : [];
+    const rentalIds = searchParams.get("rentalIds") ? searchParams.get("rentalIds").split(",") : [];
 
     const [loading, setLoading] = useState(false);
     const [cardData, setCardData] = useState({
@@ -56,7 +57,8 @@ export default function PaymentPage() {
                     paymentMethod: "CARD",
                     amount: parseFloat(amount),
                     paymentStatus: "PAID",
-                    experienceIds // Include selected experiences
+                    experienceIds, // Include selected experiences
+                    rentalIds // Include selected rentals
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });

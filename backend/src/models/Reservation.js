@@ -12,6 +12,7 @@ const reservationSchema = new mongoose.Schema({
     status: { type: String, enum: ["PENDING", "CONFIRMED", "CANCELLED"], default: "CONFIRMED" },
     guests: { type: Number, default: 1 },
     experiences: [{ type: mongoose.Schema.Types.ObjectId, ref: "Experience" }],
+    rentals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Rental" }],
 }, { timestamps: true });
 
 module.exports = mongoose.model("Reservation", reservationSchema);

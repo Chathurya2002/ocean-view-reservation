@@ -13,7 +13,10 @@ export default function AdminDashboard() {
     const [rooms, setRooms] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [usersList, setUsersList] = useState([]);
+    const [experiences, setExperiences] = useState([]);
     const [showAddRoom, setShowAddRoom] = useState(false);
+    const [showExpModal, setShowExpModal] = useState(false);
+    const [editingExp, setEditingExp] = useState(null);
     const [roomForm, setRoomForm] = useState({
         roomNumber: "",
         name: "",
@@ -21,6 +24,17 @@ export default function AdminDashboard() {
         price: "",
         desc: "",
         image: ""
+    });
+    const [expForm, setExpForm] = useState({
+        name: "",
+        category: "CULTURAL",
+        price: "",
+        duration: "",
+        desc: "",
+        includes: "",
+        notes: "",
+        image: "",
+        isAvailable: true
     });
 
     useEffect(() => {
@@ -48,14 +62,16 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("token");
-            const [roomsRes, resRes, usersRes] = await Promise.all([
+            const [roomsRes, resRes, usersRes, expRes] = await Promise.all([
                 axios.get(`${API_URL}/api/rooms`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/reservations`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${API_URL}/api/auth/users`, { headers: { Authorization: `Bearer ${token}` } })
+                axios.get(`${API_URL}/api/auth/users`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API_URL}/api/experiences`)
             ]);
             setRooms(roomsRes.data);
             setReservations(resRes.data);
             setUsersList(usersRes.data);
+            setExperiences(expRes.data);
         } catch (err) {
             console.error("Data fetch error:", err);
         }
@@ -106,6 +122,63 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleAddEditExp = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem("token");
+            const includesArray = expForm.includes.split(",").map(i => i.trim()).filter(i => i);
+            const payload = { ...expForm, includes: includesArray };
+
+            if (editingExp) {
+                await axios.put(`${API_URL}/api/experiences/${editingExp._id}`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Experience updated! ✅");
+            } else {
+                await axios.post(`${API_URL}/api/experiences`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Experience added! ✅");
+            }
+            setShowExpModal(false);
+            setEditingExp(null);
+            setExpForm({ name: "", category: "CULTURAL", price: "", duration: "", desc: "", includes: "", notes: "", image: "", isAvailable: true });
+            fetchData();
+        } catch (err) {
+            alert(err.response?.data?.message || "Error saving experience");
+        }
+    };
+
+    const handleDeleteExp = async (id) => {
+        if (!window.confirm("Delete this experience?")) return;
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`${API_URL}/api/experiences/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Experience deleted! 🗑️");
+            fetchData();
+        } catch (err) {
+            alert("Error deleting experience");
+        }
+    };
+
+    const openEditExp = (exp) => {
+        setEditingExp(exp);
+        setExpForm({
+            name: exp.name,
+            category: exp.category,
+            price: exp.price,
+            duration: exp.duration,
+            desc: exp.desc,
+            includes: exp.includes.join(", "),
+            notes: exp.notes || "",
+            image: exp.image,
+            isAvailable: exp.isAvailable
+        });
+        setShowExpModal(true);
+    };
+
     if (!user) return null;
 
     return (
@@ -120,6 +193,7 @@ export default function AdminDashboard() {
                         </div>
                         <div style={styles.tabBar}>
                             <button onClick={() => setActiveTab("ROOMS")} style={activeTab === "ROOMS" ? styles.tabActive : styles.tab}>Rooms</button>
+                            <button onClick={() => setActiveTab("EXPERIENCES")} style={activeTab === "EXPERIENCES" ? styles.tabActive : styles.tab}>Experiences</button>
                             <button onClick={() => setActiveTab("RESERVATIONS")} style={activeTab === "RESERVATIONS" ? styles.tabActive : styles.tab}>Reservations</button>
                             <button onClick={() => setActiveTab("USERS")} style={activeTab === "USERS" ? styles.tabActive : styles.tab}>Guests</button>
                             <button onClick={fetchData} style={styles.refreshBtn}>Refresh Data</button>
@@ -155,6 +229,48 @@ export default function AdminDashboard() {
                                                     <span style={r.isAvailable ? styles.statusAvail : styles.statusBooked}>
                                                         {r.isAvailable ? "Available" : "Occupied"}
                                                     </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "EXPERIENCES" && (
+                        <div style={styles.section}>
+                            <div style={styles.sectionHead}>
+                                <h2>Experiences & Trips ({experiences.length})</h2>
+                                <button style={styles.addBtn} onClick={() => { setEditingExp(null); setExpForm({ name: "", category: "CULTURAL", price: "", duration: "", desc: "", includes: "", notes: "", image: "", isAvailable: true }); setShowExpModal(true); }}><FaPlus /> Add New Experience</button>
+                            </div>
+                            <div style={styles.tableWrapper}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Price (LKR)</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {experiences.map(exp => (
+                                            <tr key={exp._id}>
+                                                <td style={{ fontWeight: "700" }}>{exp.name}</td>
+                                                <td><span style={styles.badge}>{exp.category}</span></td>
+                                                <td>{exp.price.toLocaleString()}</td>
+                                                <td style={{ fontSize: "12px", color: "var(--text-dim)" }}>{exp.duration}</td>
+                                                <td>
+                                                    <span style={exp.isAvailable ? styles.statusAvail : styles.statusBooked}>
+                                                        {exp.isAvailable ? "Available" : "Unavailable"}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button onClick={() => openEditExp(exp)} style={styles.editBtn}>Edit</button>
+                                                    <button onClick={() => handleDeleteExp(exp._id)} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -205,9 +321,14 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     {res.paymentReceipt ? (
-                                                        <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
-                                                            View Receipt
-                                                        </a>
+                                                        <div style={{ display: "flex", gap: "8px", flexDirection: "column" }}>
+                                                            <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
+                                                                View Receipt
+                                                            </a>
+                                                            <a href={`${API_URL}${res.paymentReceipt}`} download style={styles.downloadBtn}>
+                                                                Download
+                                                            </a>
+                                                        </div>
                                                     ) : (
                                                         <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Receipt</span>
                                                     )}
@@ -315,6 +436,69 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     )}
+
+                    {/* ADD/EDIT EXPERIENCE MODAL */}
+                    {showExpModal && (
+                        <div style={styles.overlay} onClick={() => setShowExpModal(false)}>
+                            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                                <header style={styles.mHead}>
+                                    <h2 style={{ margin: 0 }}>{editingExp ? "Edit Experience" : "Add Experience"}</h2>
+                                    <button style={styles.mClose} onClick={() => setShowExpModal(false)}>✕</button>
+                                </header>
+                                <form onSubmit={handleAddEditExp} style={styles.form}>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Experience Name</label>
+                                        <input style={styles.fIn} placeholder="Galle Fort Sunset Walk" required value={expForm.name} onChange={e => setExpForm({ ...expForm, name: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fRow}>
+                                        <div style={styles.fGroup}>
+                                            <label style={styles.fLab}>Category</label>
+                                            <select style={styles.fSel} value={expForm.category} onChange={e => setExpForm({ ...expForm, category: e.target.value })}>
+                                                <option value="CULTURAL">Cultural</option>
+                                                <option value="WATER_ACTIVITY">Water Activity</option>
+                                                <option value="NATURE">Nature</option>
+                                                <option value="FOOD_EXPERIENCE">Food Experience</option>
+                                                <option value="WELLNESS">Wellness</option>
+                                                <option value="TRANSPORT">Transport</option>
+                                                <option value="ADVENTURE">Adventure</option>
+                                            </select>
+                                        </div>
+                                        <div style={styles.fGroup}>
+                                            <label style={styles.fLab}>Duration</label>
+                                            <input style={styles.fIn} placeholder="2 hours" required value={expForm.duration} onChange={e => setExpForm({ ...expForm, duration: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Price (LKR)</label>
+                                        <input style={styles.fIn} type="number" placeholder="5000" required value={expForm.price} onChange={e => setExpForm({ ...expForm, price: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Description</label>
+                                        <textarea style={{ ...styles.fIn, minHeight: "80px" }} placeholder="Describe the experience..." required value={expForm.desc} onChange={e => setExpForm({ ...expForm, desc: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Includes (comma-separated)</label>
+                                        <input style={styles.fIn} placeholder="Guide, Transport, Refreshments" value={expForm.includes} onChange={e => setExpForm({ ...expForm, includes: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Notes (optional)</label>
+                                        <input style={styles.fIn} placeholder="Booking required 24h in advance" value={expForm.notes} onChange={e => setExpForm({ ...expForm, notes: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Image URL</label>
+                                        <input style={styles.fIn} placeholder="https://..." required value={expForm.image} onChange={e => setExpForm({ ...expForm, image: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={{ ...styles.fLab, display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <input type="checkbox" checked={expForm.isAvailable} onChange={e => setExpForm({ ...expForm, isAvailable: e.target.checked })} />
+                                            Available for Booking
+                                        </label>
+                                    </div>
+                                    <button type="submit" style={styles.submitBtn}>{editingExp ? "Update Experience" : "Add Experience"}</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>
@@ -345,13 +529,15 @@ const styles = {
 
     badge: { background: "#f1f5f9", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "800" },
     resBadge: { background: "var(--primary-light)", color: "var(--primary)", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "800" },
+    editBtn: { background: "#dbeafe", color: "#1e40af", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", cursor: "pointer", marginRight: "8px" },
     deleteBtn: { background: "#fee2e2", color: "#991b1b", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", cursor: "pointer" },
     statusAvail: { background: "#dcfce7", color: "#166534", padding: "4px 12px", borderRadius: "100px", fontSize: "12px", fontWeight: "800" },
     statusBooked: { background: "#fee2e2", color: "#991b1b", padding: "4px 12px", borderRadius: "100px", fontSize: "12px", fontWeight: "800" },
-    viewImgBtn: { display: "inline-block", background: "var(--primary-light)", color: "var(--primary)", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none" },
+    viewImgBtn: { display: "inline-block", background: "var(--primary-light)", color: "var(--primary)", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center" },
+    downloadBtn: { display: "inline-block", background: "#dcfce7", color: "#166534", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center" },
 
-    overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-    modal: { background: "white", width: "100%", maxWidth: "500px", borderRadius: "32px", padding: "40px" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" },
+    modal: { background: "white", width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", borderRadius: "32px", padding: "40px" },
     mHead: { display: "flex", justifyContent: "space-between", marginBottom: "32px" },
     mClose: { border: "none", background: "none", fontSize: "24px", cursor: "pointer" },
 
@@ -359,7 +545,8 @@ const styles = {
     fRow: { display: "flex", gap: "16px" },
     fGroup: { flex: 1, display: "flex", flexDirection: "column", gap: "8px" },
     fLab: { fontSize: "13px", fontWeight: "700" },
-    fIn: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc" },
-    fSel: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc" },
+    fIn: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc", fontSize: "14px" },
+    fSel: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc", fontSize: "14px" },
+    submitBtn: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "800", cursor: "pointer", fontSize: "15px" },
     mSubmit: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "800", cursor: "pointer" }
 };

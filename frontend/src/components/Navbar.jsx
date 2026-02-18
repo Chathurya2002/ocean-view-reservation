@@ -113,8 +113,10 @@ export default function Navbar() {
 
           <div style={styles.links}>
             <Link to="/" style={isActive("/") ? styles.activeLink : styles.link}>Home</Link>
-            <Link to="/experiences" style={isActive("/experiences") ? styles.activeLink : styles.link}>Extra Trips</Link>
             <Link to="/about" style={isActive("/about") ? styles.activeLink : styles.link}>About Us</Link>
+            <Link to="/experiences" style={isActive("/experiences") ? styles.activeLink : styles.link}>Extra Trips</Link>
+            <Link to="/rentals" style={isActive("/rentals") ? styles.activeLink : styles.link}>Rentals</Link>
+            <Link to="/help" style={isActive("/help") ? styles.activeLink : styles.link}>Help</Link>
             {user && user.role === "admin" && (
               <Link to="/admin" style={styles.adminBtn}>Admin Portal</Link>
             )}

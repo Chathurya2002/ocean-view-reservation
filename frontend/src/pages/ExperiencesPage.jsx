@@ -78,7 +78,7 @@ const styles = {
 
     hero: {
         height: "400px",
-        background: "linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)), url('https://images.unsplash.com/photo-1590680309322-9a3b680746e3?auto=format&fit=crop&w=1920&q=80')",
+        background: "linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)), url('https://www.andbeyond.com/wp-content/uploads/sites/5/Fortress-Resort-Galle-Locals-Fishing-and-Balancing-On-Sticks-In-the-Sea.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         display: "flex",

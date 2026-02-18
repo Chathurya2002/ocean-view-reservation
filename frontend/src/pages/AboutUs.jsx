@@ -25,7 +25,7 @@ export default function AboutUs() {
                     </div>
                     <div style={styles.imageBlock}>
                         <img
-                            src="https://images.unsplash.com/photo-1571896349842-6e53ce41e887?auto=format&fit=crop&w=800&q=80"
+                            src="https://www.ampersandtravel.com/media/673996/kk-beach-galle-sri-lanka-7.jpg?mode=crop&quality=95&width=820&height=534"
                             alt="Resort Pool"
                             style={styles.image}
                         />
@@ -53,11 +53,11 @@ export default function AboutUs() {
 
 const styles = {
     hero: {
-        height: "60vh",
-        background: "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80')",
+        height: "80vh",
+        background: "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/09/KK-Beach-Cuisine-23-dining.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        display: "flex",
+        display: "fixed",
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
@@ -69,6 +69,7 @@ const styles = {
     },
     title: {
         fontSize: "4rem",
+         color: "rgba(255, 255, 255, 0.9)",
         marginBottom: "1rem",
         letterSpacing: "-1px",
     },

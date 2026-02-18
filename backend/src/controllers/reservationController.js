@@ -1,10 +1,11 @@
 const Reservation = require("../models/Reservation");
 const Room = require("../models/Room");
 const Experience = require("../models/Experience");
+const Rental = require("../models/Rental");
 
 exports.createReservation = async (req, res) => {
     try {
-        const { roomId, checkIn, checkOut, paymentMethod, guests, experienceIds } = req.body;
+        const { roomId, checkIn, checkOut, paymentMethod, guests, experienceIds, rentalIds } = req.body;
 
         const room = await Room.findById(roomId);
         if (!room) return res.status(404).json({ message: "Room not found" });
@@ -31,11 +32,17 @@ exports.createReservation = async (req, res) => {
         let totalPrice = nights * room.price;
 
         // Add Experience Prices
-        let selectedExperiences = [];
         if (experienceIds && Array.isArray(experienceIds) && experienceIds.length > 0) {
-            selectedExperiences = await Experience.find({ _id: { $in: experienceIds } });
+            const selectedExperiences = await Experience.find({ _id: { $in: experienceIds } });
             const experiencesTotal = selectedExperiences.reduce((sum, exp) => sum + exp.price, 0);
             totalPrice += experiencesTotal;
+        }
+
+        // Add Rental Prices
+        if (rentalIds && Array.isArray(rentalIds) && rentalIds.length > 0) {
+            const selectedRentals = await Rental.find({ _id: { $in: rentalIds } });
+            const rentalsTotal = selectedRentals.reduce((sum, rental) => sum + rental.price, 0);
+            totalPrice += rentalsTotal;
         }
 
         // Generate unique reservation number
@@ -51,11 +58,9 @@ exports.createReservation = async (req, res) => {
             paymentMethod,
             guests: guests || 1,
             experiences: experienceIds || [],
+            rentals: rentalIds || [],
             paymentReceipt: req.file ? `/uploads/${req.file.filename}` : null
         });
-
-        // 🚀 We no longer mark the room as globally unavailable.
-        // Availability is determined dynamically by date range in roomController.
 
         res.status(201).json(reservation);
     } catch (err) {
@@ -79,7 +84,8 @@ exports.getReservation = async (req, res) => {
         const reservation = await Reservation.findById(req.params.id)
             .populate("room", "name roomNumber price image type")
             .populate("user", "name email")
-            .populate("experiences");
+            .populate("experiences")
+            .populate("rentals");
         if (!reservation) return res.status(404).json({ message: "Reservation not found" });
         res.json(reservation);
     } catch (err) {

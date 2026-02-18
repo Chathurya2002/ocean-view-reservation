@@ -32,6 +32,7 @@ const ROOMS = [
 
 export default function SearchPage() {
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState(null);
   const [form, setForm] = useState({
     checkInDate: "",
     checkOutDate: "",
@@ -107,20 +108,38 @@ export default function SearchPage() {
 
         <div style={styles.grid}>
           {ROOMS.map((room) => (
-            <div key={room.id} style={styles.card} onClick={() => navigate(`/rooms?roomType=${room.id}`)}>
-              <div style={{ ...styles.cardImg, backgroundImage: `url(${room.image})` }}>
-                <div style={styles.overlay}>
-                  <button style={styles.viewBtn}>View <FaArrowRight size={10} /></button>
+            <div key={room.id} style={styles.card}>
+              <div
+                style={{ ...styles.cardImg, backgroundImage: `url(${room.image})` }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImage({ url: room.image, name: room.name });
+                }}
+              >
+                <div style={styles.imageOverlay}>
+                  <span style={styles.zoomIcon}>🔍 Click to Enlarge</span>
                 </div>
               </div>
-              <div style={styles.cardBody}>
+              <div style={styles.cardBody} onClick={() => navigate(`/rooms?roomType=${room.id}`)}>
                 <h3 style={styles.cardName}>{room.name}</h3>
                 <p style={styles.cardDesc}>{room.desc}</p>
+                <button style={styles.viewDetailsBtn}>View Details <FaArrowRight size={10} /></button>
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      {/* Image Lightbox */}
+      {selectedImage && (
+        <div style={styles.lightbox} onClick={() => setSelectedImage(null)}>
+          <button style={styles.closeBtn} onClick={() => setSelectedImage(null)}>✕</button>
+          <div style={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+            <img src={selectedImage.url} alt={selectedImage.name} style={styles.lightboxImg} />
+            <p style={styles.lightboxCaption}>{selectedImage.name}</p>
+          </div>
+        </div>
+      )}
 
       {/* FEATURES SECTION */}
       <section style={styles.features}>
@@ -149,8 +168,7 @@ export default function SearchPage() {
 const styles = {
   hero: {
     minHeight: "85vh",
-    background: "#858282ff",
-    backgroundImage: "linear-gradient(rgba(150, 217, 245, 0.5),rgba(150, 217, 245, 0.5)), url('https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800')",
+    background: "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url(https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800)",
     backgroundSize: "cover",
     backgroundPosition: "center",
     display: "flex",
@@ -164,18 +182,20 @@ const styles = {
   heroTitle: {
     fontSize: "clamp(3rem, 7vw, 5rem)",
     fontWeight: "900",
-    color: "var(--secondary)",
+    color: "white",
     letterSpacing: "-2px",
     lineHeight: "1.1",
-    marginBottom: "24px"
+    marginBottom: "24px",
+    textShadow: "0 4px 12px rgba(0,0,0,0.3)"
   },
-  highlight: { color: "var(--primary)", position: "relative" },
+  highlight: { color: "#60a5fa", position: "relative" },
   heroSub: {
     fontSize: "1.2rem",
-    color: "var(--text-dim)",
+    color: "rgba(255, 255, 255, 0.95)",
     maxWidth: "550px",
     margin: "0 auto 60px",
-    lineHeight: "1.6"
+    lineHeight: "1.6",
+    textShadow: "0 2px 8px rgba(0,0,0,0.3)"
   },
 
   searchContainer: { display: "flex", justifyContent: "center" },

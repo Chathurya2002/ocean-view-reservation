@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Tesseract from "tesseract.js";
 import Layout from "../components/Layout";
-import { FaWifi, FaCoffee, FaTv, FaWind, FaBath, FaCreditCard, FaLock, FaCalendarAlt, FaArrowLeft, FaMapMarkerAlt } from "react-icons/fa";
+import { FaWifi, FaCoffee, FaTv, FaWind, FaBath, FaCreditCard, FaLock, FaCalendarAlt, FaArrowLeft, FaMapMarkerAlt, FaCar, FaBiking } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -42,6 +42,8 @@ export default function RoomDetails() {
 
     const [experiences, setExperiences] = useState([]);
     const [selectedExpIds, setSelectedExpIds] = useState([]);
+    const [rentals, setRentals] = useState([]);
+    const [selectedRentalIds, setSelectedRentalIds] = useState([]);
 
     useEffect(() => {
         const fetchRoom = async () => {
@@ -63,6 +65,15 @@ export default function RoomDetails() {
                 setExperiences(res.data);
             } catch (err) {
                 console.error("Error fetching experiences:", err);
+            }
+        };
+
+        const fetchRentals = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/rentals`);
+                setRentals(res.data);
+            } catch (err) {
+                console.error("Error fetching rentals:", err);
             }
         };
 
@@ -89,11 +100,12 @@ export default function RoomDetails() {
 
         fetchRoom();
         fetchExperiences();
+        fetchRentals();
         fetchUser();
     }, [id, navigate]);
 
     const calculateTotal = () => {
-        if (!room || !bookingData.checkIn || !bookingData.checkOut) return { nights: 0, total: 0, roomTotal: 0, expTotal: 0 };
+        if (!room || !bookingData.checkIn || !bookingData.checkOut) return { nights: 0, total: 0, roomTotal: 0, expTotal: 0, rentalTotal: 0 };
         const start = new Date(bookingData.checkIn);
         const end = new Date(bookingData.checkOut);
         const diffTime = Math.abs(end - start);
@@ -105,16 +117,28 @@ export default function RoomDetails() {
             .filter(exp => selectedExpIds.includes(exp._id))
             .reduce((sum, exp) => sum + exp.price, 0);
 
-        return { nights, total: roomTotal + expTotal, roomTotal, expTotal };
+        const rentalTotal = rentals
+            .filter(rental => selectedRentalIds.includes(rental._id))
+            .reduce((sum, rental) => sum + rental.price, 0);
+
+        return { nights, total: roomTotal + expTotal + rentalTotal, roomTotal, expTotal, rentalTotal };
     };
 
-    const { nights, total, roomTotal, expTotal } = calculateTotal();
+    const { nights, total, roomTotal, expTotal, rentalTotal } = calculateTotal();
 
     const toggleExperience = (expId) => {
         setSelectedExpIds(prev =>
             prev.includes(expId)
                 ? prev.filter(id => id !== expId)
                 : [...prev, expId]
+        );
+    };
+
+    const toggleRental = (rentalId) => {
+        setSelectedRentalIds(prev =>
+            prev.includes(rentalId)
+                ? prev.filter(id => id !== rentalId)
+                : [...prev, rentalId]
         );
     };
 
@@ -149,7 +173,7 @@ export default function RoomDetails() {
     const proceedToBooking = async () => {
         if (bookingData.paymentMethod === "CARD") {
             // Redirect to Payment Page
-            navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}`);
+            navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
         } else {
             // BANK or Cash Payment (Pay at Property)
             const token = localStorage.getItem("token");
@@ -168,6 +192,7 @@ export default function RoomDetails() {
 
             // Add experience IDs
             selectedExpIds.forEach(id => formData.append("experienceIds[]", id));
+            selectedRentalIds.forEach(id => formData.append("rentalIds[]", id));
 
             if (bookingData.paymentReceipt) {
                 formData.append("paymentReceipt", bookingData.paymentReceipt);
@@ -211,7 +236,7 @@ export default function RoomDetails() {
             alert("Profile details updated! Continuing your booking...");
             // Automatically proceed to booking after detail update
             if (bookingData.paymentMethod === "CARD") {
-                navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}`);
+                navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
             } else {
                 await createReservation(token);
             }
@@ -378,6 +403,50 @@ export default function RoomDetails() {
                                     ))}
                                 </div>
                             </section>
+
+                            {/* RENTALS SECTION */}
+                            <section style={styles.section}>
+                                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                    <div>
+                                        <h3 style={styles.sectionTitle}>Rent a Vehicle</h3>
+                                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '-15px' }}>Explore the surroundings with our premium fleet.</p>
+                                    </div>
+                                    <span style={styles.tagCount}>{selectedRentalIds.length} Selected</span>
+                                </header>
+                                <div style={styles.expGrid}>
+                                    {rentals.map(rental => (
+                                        <div key={rental._id}
+                                            style={{
+                                                ...styles.expCard,
+                                                borderColor: selectedRentalIds.includes(rental._id) ? 'var(--primary)' : 'var(--border)',
+                                                background: selectedRentalIds.includes(rental._id) ? 'var(--primary-light)' : 'white'
+                                            }}
+                                            onClick={() => toggleRental(rental._id)}
+                                        >
+                                            <div style={{ ...styles.expImg, backgroundImage: `url(${rental.image})` }} />
+                                            <div style={styles.expContent}>
+                                                <div style={styles.expHeader}>
+                                                    <span style={styles.expCat}>
+                                                        {rental.type === "Vehicle" ? <FaCar size={10} /> : <FaBiking size={10} />} {rental.type}
+                                                    </span>
+                                                </div>
+                                                <h4 style={styles.expName}>{rental.name}</h4>
+                                                <p style={styles.expDesc}>{rental.description}</p>
+                                                <div style={styles.expFooter}>
+                                                    <span style={styles.expPrice}>LKR {rental.price.toLocaleString()}</span>
+                                                    <button style={{
+                                                        ...styles.addBtn,
+                                                        background: selectedRentalIds.includes(rental._id) ? 'var(--primary)' : 'transparent',
+                                                        color: selectedRentalIds.includes(rental._id) ? 'white' : 'var(--primary)'
+                                                    }}>
+                                                        {selectedRentalIds.includes(rental._id) ? 'Selected' : '+ Add'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
                         </div>
 
                         {/* RIGHT SIDEBAR: BOOKING CARD */}
@@ -427,6 +496,9 @@ export default function RoomDetails() {
                                             <div style={styles.sumRow}><span>Experiences Add-ons ({selectedExpIds.length})</span><span>LKR {expTotal.toLocaleString()}</span></div>
                                         )}
                                         <div style={styles.sumRow}><span>Resort Fees</span><span>LKR 0</span></div>
+                                        {selectedRentalIds.length > 0 && (
+                                            <div style={styles.sumRow}><span>Rental Add-ons ({selectedRentalIds.length})</span><span>LKR {rentalTotal.toLocaleString()}</span></div>
+                                        )}
                                         <div style={styles.totalRow}><span>Total Price</span><span>LKR {total.toLocaleString()}</span></div>
                                     </div>
 
