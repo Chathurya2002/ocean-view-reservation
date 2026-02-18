@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import axios from "axios";
 import Layout from "../components/Layout";
+import InvoiceTemplate from "../components/InvoiceTemplate";
 import { FaCheckCircle, FaDownload, FaHome } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -60,8 +61,8 @@ export default function ReservationSuccess() {
 
     // Calculate totals for display
     const roomTotal = room ? nightCount * room.price : 0;
-    const expTotal = experiences ? experiences.reduce((sum, exp) => sum + exp.price, 0) : 0;
-    const rentalTotal = rentals ? rentals.reduce((sum, rent) => sum + rent.price, 0) : 0;
+    const expTotal = experiences ? experiences.reduce((sum, item) => sum + (item.experience?.price || 0), 0) : 0;
+    const rentalTotal = rentals ? rentals.reduce((sum, item) => sum + ((item.rental?.price || 0) * (item.days || 1)), 0) : 0;
     const calculatedTotal = roomTotal + expTotal + rentalTotal;
 
     return (
@@ -72,85 +73,8 @@ export default function ReservationSuccess() {
                     <h1 style={styles.title}>Booking Confirmed!</h1>
                     <p style={styles.sub}>Thank you for choosing Ocean View. We can't wait to host you.</p>
 
-                    {/* INVOICE AREA - THIS IS WHAT GETS PRINTED */}
-                    <div ref={invoiceRef} style={styles.invoice}>
-                        <div style={styles.invHeader}>
-                            <h2 style={styles.brand}>Ocean View Resort</h2>
-                            <div style={styles.invMeta}>
-                                <div><strong>Invoice #:</strong> {reservationNumber}</div>
-                                <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
-                            </div>
-                        </div>
-
-                        <div style={styles.divider} />
-
-                        <div style={styles.guestInfo}>
-                            <h3>Guest Details</h3>
-                            <p><strong>Name:</strong> {reservation.user.name}</p>
-                            <p><strong>Email:</strong> {reservation.user.email}</p>
-                        </div>
-
-                        <div style={styles.table}>
-                            <div style={styles.tHead}>
-                                <span>Description</span>
-                                <span>Total</span>
-                            </div>
-
-                            {/* Room Details */}
-                            {room && (
-                                <div style={styles.tRow}>
-                                    <div>
-                                        <strong>{room.name}</strong>
-                                        <div style={styles.sm}>Room #{room.roomNumber} • {nightCount} Night(s)</div>
-                                        <div style={styles.sm}>{new Date(checkIn).toLocaleDateString()} - {new Date(checkOut).toLocaleDateString()}</div>
-                                    </div>
-                                    <span>LKR {roomTotal.toLocaleString()}</span>
-                                </div>
-                            )}
-
-                            {/* Experiences */}
-                            {experiences && experiences.map(exp => (
-                                <div key={exp._id} style={styles.tRow}>
-                                    <div>
-                                        <strong>Experience: {exp.name}</strong>
-                                        <div style={styles.sm}>{exp.category} • {exp.duration}</div>
-                                    </div>
-                                    <span>LKR {exp.price.toLocaleString()}</span>
-                                </div>
-                            ))}
-
-                            {/* Rentals */}
-                            {rentals && rentals.map(rental => (
-                                <div key={rental._id} style={styles.tRow}>
-                                    <div>
-                                        <strong>Rental: {rental.name}</strong>
-                                        <div style={styles.sm}>{rental.type}</div>
-                                    </div>
-                                    <span>LKR {rental.price.toLocaleString()}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={styles.totalSection}>
-                            <div style={styles.totalRow}>
-                                <span>Subtotal</span>
-                                <span>LKR {calculatedTotal.toLocaleString()}</span>
-                            </div>
-                            <div style={styles.totalRow}>
-                                <span>Taxes & Fees</span>
-                                <span>Included</span>
-                            </div>
-                            <div style={{ ...styles.totalRow, fontSize: "18px", marginTop: "10px", color: "var(--primary)" }}>
-                                <span>Total Paid ({paymentMethod})</span>
-                                <span>LKR {price.toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <div style={styles.footer}>
-                            <p>Questions? Contact us at support@oceanview.lk</p>
-                            <p>Galle, Hikkaduwa, Sri Lanka</p>
-                        </div>
-                    </div>
+                    {/* INVOICE TEMPLATE */}
+                    <InvoiceTemplate ref={invoiceRef} reservation={reservation} />
 
                     <div style={styles.actions}>
                         <button onClick={handleDownloadPdf} style={styles.downloadBtn}>

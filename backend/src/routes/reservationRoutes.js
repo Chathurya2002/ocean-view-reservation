@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createReservation, getAllReservations, getReservation, deleteReservation, getMyReservations } = require("../controllers/reservationController");
+const { createReservation, getAllReservations, getReservation, deleteReservation, getMyReservations, updateReservation } = require("../controllers/reservationController");
 const { protect, admin } = require("../middleware/authMiddleware");
 const multer = require("multer");
 const path = require("path");
@@ -29,6 +29,7 @@ router.post("/", protect, upload.single("paymentReceipt"), createReservation);
 router.get("/my", protect, getMyReservations);
 router.get("/", protect, admin, getAllReservations);
 router.get("/:id", protect, getReservation);
+router.put("/:id", protect, admin, updateReservation);
 router.delete("/:id", protect, admin, deleteReservation);
 
 module.exports = router;

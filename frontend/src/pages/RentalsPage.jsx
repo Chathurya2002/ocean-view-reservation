@@ -11,6 +11,14 @@ export default function RentalsPage() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const [selectedDates, setSelectedDates] = useState({});
+    const [showRentModal, setShowRentModal] = useState(false);
+    const [selectedRental, setSelectedRental] = useState(null);
+    const [rentalDates, setRentalDates] = useState({
+        startDate: "",
+        endDate: ""
+    });
+
     useEffect(() => {
         const fetchRentals = async () => {
             try {
@@ -25,9 +33,28 @@ export default function RentalsPage() {
         fetchRentals();
     }, []);
 
-    const handleRent = (rental) => {
+    const openRentModal = (rental) => {
+        setSelectedRental(rental);
+        // Default to today/tomorrow
         const today = new Date().toISOString().split('T')[0];
-        navigate(`/payment?amount=${rental.price}&rentalIds=${rental._id}&checkIn=${today}&checkOut=${today}&guests=1`);
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+        setRentalDates({ startDate: today, endDate: tomorrow });
+        setShowRentModal(true);
+    };
+
+    const handleConfirmRent = () => {
+        if (!selectedRental || !rentalDates.startDate || !rentalDates.endDate) return;
+
+        const start = new Date(rentalDates.startDate);
+        const end = new Date(rentalDates.endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
+        const days = diffDays > 0 ? diffDays : 1;
+        const totalPrice = selectedRental.price * days;
+
+        // Pass details to payment page
+        // Format: rentalIds=id, startDate=date, endDate=date
+        navigate(`/payment?amount=${totalPrice}&rentalIds=${selectedRental._id}&startDate=${rentalDates.startDate}&endDate=${rentalDates.endDate}&type=rental`);
     };
 
     if (loading) return <Layout><div style={styles.loader}>Loading Rentals...</div></Layout>;
@@ -35,6 +62,7 @@ export default function RentalsPage() {
     return (
         <Layout>
             <div style={styles.page}>
+                {/* ... Hero ... */}
                 <div style={styles.hero}>
                     <div style={styles.heroContent}>
                         <h1 style={styles.heroTitle}>Rent a <span style={{ color: "var(--primary)" }}>Vehicle</span></h1>
@@ -46,10 +74,12 @@ export default function RentalsPage() {
                     <div style={styles.grid}>
                         {rentals.map(rental => (
                             <div key={rental._id} style={styles.card}>
+                                {/* ... Card Content ... */}
                                 <div style={{ ...styles.cardImg, backgroundImage: `url(${rental.image})` }}>
-                                    <div style={styles.priceBadge}>LKR {rental.price.toLocaleString()}</div>
+                                    <div style={styles.priceBadge}>LKR {rental.price.toLocaleString()} / day</div>
                                 </div>
                                 <div style={styles.cardBody}>
+                                    {/* ... details ... */}
                                     <div style={styles.cardHeader}>
                                         <span style={styles.catTag}>
                                             {rental.type === "Vehicle" ? <FaCar size={12} /> : <FaBiking size={12} />}
@@ -68,7 +98,7 @@ export default function RentalsPage() {
                                     </div>
 
                                     <div style={styles.footer}>
-                                        <button onClick={() => handleRent(rental)} style={styles.rentBtn}>
+                                        <button onClick={() => openRentModal(rental)} style={styles.rentBtn}>
                                             Rent Now <FaCheckCircle size={12} />
                                         </button>
                                         <div style={styles.note}><FaInfoCircle size={10} /> Instant Booking</div>
@@ -78,6 +108,46 @@ export default function RentalsPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* RENTAL DATE MODAL */}
+                {showRentModal && (
+                    <div style={styles.overlay} onClick={() => setShowRentModal(false)}>
+                        <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                            <h2 style={{ marginBottom: "20px" }}>Rent {selectedRental?.name}</h2>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "700" }}>Start Date</label>
+                                    <input type="date" value={rentalDates.startDate} onChange={e => setRentalDates({ ...rentalDates, startDate: e.target.value })} style={styles.dateInput} />
+                                </div>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "700" }}>End Date</label>
+                                    <input type="date" value={rentalDates.endDate} onChange={e => setRentalDates({ ...rentalDates, endDate: e.target.value })} style={styles.dateInput} />
+                                </div>
+                                <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "8px", marginTop: "10px" }}>
+                                    <strong>Total Price:</strong> LKR {
+                                        (() => {
+                                            const start = new Date(rentalDates.startDate);
+                                            const end = new Date(rentalDates.endDate);
+                                            const diff = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                                            const d = (!isNaN(diff) && diff > 0) ? diff : 1;
+                                            return (selectedRental?.price * d).toLocaleString();
+                                        })()
+                                    } <span style={{ fontSize: "12px", color: "#64748b" }}>
+                                        (for {
+                                            (() => {
+                                                const start = new Date(rentalDates.startDate);
+                                                const end = new Date(rentalDates.endDate);
+                                                const diff = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                                                return (!isNaN(diff) && diff > 0) ? diff : 1;
+                                            })()
+                                        } days)
+                                    </span>
+                                </div>
+                                <button onClick={handleConfirmRent} style={styles.mBtn}>Proceed to Payment</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </Layout>
     );
@@ -123,5 +193,9 @@ const styles = {
 
     footer: { marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" },
     rentBtn: { background: "var(--primary)", color: "white", padding: "12px", borderRadius: "12px", border: "none", fontWeight: "800", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s" },
-    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px", alignSelf: "center" }
+    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px", alignSelf: "center" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+    modal: { background: "white", padding: "32px", borderRadius: "24px", width: "90%", maxWidth: "400px", boxShadow: "var(--shadow)" },
+    dateInput: { width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "14px" },
+    mBtn: { background: "var(--primary)", color: "white", padding: "14px", borderRadius: "12px", border: "none", fontWeight: "800", marginTop: "16px", cursor: "pointer", width: "100%" }
 };

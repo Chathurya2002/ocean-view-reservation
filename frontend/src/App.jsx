@@ -10,6 +10,7 @@ import ReservationSuccess from "./pages/ReservationSuccess";
 import ProfilePage from "./pages/ProfilePage";
 import ExperiencesPage from "./pages/ExperiencesPage";
 import HelpPage from "./pages/HelpPage";
+import AdminInvoicePage from "./pages/AdminInvoicePage";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/success/:id" element={<ReservationSuccess />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/experiences" element={<ExperiencesPage />} />
+      <Route path="/admin/invoice/:id" element={<AdminInvoicePage />} />
       <Route path="/rentals" element={<RentalsPage />} />
       <Route path="/help" element={<HelpPage />} />
     </Routes>

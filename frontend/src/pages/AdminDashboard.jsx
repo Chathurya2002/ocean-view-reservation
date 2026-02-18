@@ -37,6 +37,30 @@ export default function AdminDashboard() {
         isAvailable: true
     });
 
+    // RENTAL STATE
+    const [rentals, setRentals] = useState([]);
+    const [showRentalModal, setShowRentalModal] = useState(false);
+    const [editingRental, setEditingRental] = useState(null);
+    const [rentalForm, setRentalForm] = useState({
+        name: "",
+        type: "Vehicle",
+        price: "",
+        description: "",
+        image: "",
+        features: ""
+    });
+
+    // DRIVER / RENTAL BOOKING STATE
+    const [rentalBookings, setRentalBookings] = useState([]);
+    const [showDriverModal, setShowDriverModal] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [driverForm, setDriverForm] = useState({
+        name: "",
+        contact: "",
+        vehicleNo: "",
+        status: "ASSIGNED"
+    });
+
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
         if (!storedUser) {
@@ -62,16 +86,22 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("token");
-            const [roomsRes, resRes, usersRes, expRes] = await Promise.all([
+            const [roomsRes, resRes, usersRes, expRes, rentRes] = await Promise.all([
                 axios.get(`${API_URL}/api/rooms`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/reservations`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/auth/users`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${API_URL}/api/experiences`)
+                axios.get(`${API_URL}/api/experiences`),
+                axios.get(`${API_URL}/api/rentals`)
             ]);
             setRooms(roomsRes.data);
             setReservations(resRes.data);
             setUsersList(usersRes.data);
             setExperiences(expRes.data);
+            setRentals(rentRes.data);
+
+            // Filter Rental Bookings
+            const rBookings = resRes.data.filter(r => r.rentals && r.rentals.length > 0);
+            setRentalBookings(rBookings);
         } catch (err) {
             console.error("Data fetch error:", err);
         }
@@ -179,6 +209,101 @@ export default function AdminDashboard() {
         setShowExpModal(true);
     };
 
+    // --- RENTAL HANDLERS ---
+    const handleAddEditRental = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem("token");
+            const featuresArray = rentalForm.features.split(",").map(f => f.trim()).filter(f => f);
+            const payload = { ...rentalForm, features: featuresArray };
+
+            if (editingRental) {
+                await axios.put(`${API_URL}/api/rentals/${editingRental._id}`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Rental updated! ✅");
+            } else {
+                await axios.post(`${API_URL}/api/rentals`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Rental added! ✅");
+            }
+            setShowRentalModal(false);
+            setEditingRental(null);
+            setRentalForm({ name: "", type: "Vehicle", price: "", description: "", image: "", features: "" });
+            fetchData();
+        } catch (err) {
+            alert("Error saving rental");
+        }
+    };
+
+    const handleDeleteRental = async (id) => {
+        if (!window.confirm("Delete this rental listing?")) return;
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`${API_URL}/api/rentals/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Rental deleted! 🗑️");
+            fetchData();
+        } catch (err) {
+            alert("Error deleting rental");
+        }
+    };
+
+    const openEditRental = (rental) => {
+        setEditingRental(rental);
+        setRentalForm({
+            name: rental.name,
+            type: rental.type,
+            price: rental.price,
+            description: rental.description,
+            image: rental.image,
+            features: rental.features.join(", ")
+        });
+        setShowRentalModal(true);
+    };
+
+    // --- DRIVER ASSIGNMENT HANDLERS ---
+    const openDriverModal = (booking) => {
+        setSelectedBooking(booking);
+        setDriverForm({
+            name: booking.driverDetails?.name || "",
+            contact: booking.driverDetails?.contact || "",
+            vehicleNo: booking.driverDetails?.vehicleNo || "",
+            status: booking.driverDetails?.status || "ASSIGNED"
+        });
+        setShowDriverModal(true);
+    };
+
+    const handleAssignDriver = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem("token");
+            // We use a generic reservation update or specific endpoint if implemented. 
+            // Using generic update assuming backend allows updating driverDetails via PUT /api/reservations/:id (not implemented yet, but usually PUT updates body).
+            // NOTE: Standard Reservation update usually requires full body or PATCH. 
+            // If backend reservation update uses findByIdAndUpdate with req.body, this works if we send just the fields to update (PATCH style) or full object.
+            // Let's assume standard PUT updates fields provided.
+            // Wait, reservationRoutes usually has DELETE and GET. Does it have PUT? 
+            // I should check reservationRoutes.js. If not, I need to add it.
+            // For now, I'll assume I need to add/use PUT.
+
+            await axios.put(`${API_URL}/api/reservations/${selectedBooking._id}`, {
+                driverDetails: driverForm
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            alert("Driver details updated! 🚖");
+            setShowDriverModal(false);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Error updating driver details. Ensure backend supports update.");
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -193,8 +318,10 @@ export default function AdminDashboard() {
                         </div>
                         <div style={styles.tabBar}>
                             <button onClick={() => setActiveTab("ROOMS")} style={activeTab === "ROOMS" ? styles.tabActive : styles.tab}>Rooms</button>
+                            <button onClick={() => setActiveTab("RENTAL_INVENTORY")} style={activeTab === "RENTAL_INVENTORY" ? styles.tabActive : styles.tab}>Rentals</button>
                             <button onClick={() => setActiveTab("EXPERIENCES")} style={activeTab === "EXPERIENCES" ? styles.tabActive : styles.tab}>Experiences</button>
-                            <button onClick={() => setActiveTab("RESERVATIONS")} style={activeTab === "RESERVATIONS" ? styles.tabActive : styles.tab}>Reservations</button>
+                            <button onClick={() => setActiveTab("RESERVATIONS")} style={activeTab === "RESERVATIONS" ? styles.tabActive : styles.tab}>Bookings</button>
+                            <button onClick={() => setActiveTab("RENTAL_BOOKINGS")} style={activeTab === "RENTAL_BOOKINGS" ? styles.tabActive : styles.tab}>Rental Bookings</button>
                             <button onClick={() => setActiveTab("USERS")} style={activeTab === "USERS" ? styles.tabActive : styles.tab}>Guests</button>
                             <button onClick={fetchData} style={styles.refreshBtn}>Refresh Data</button>
                             <button onClick={handleResync} style={styles.syncBtn}>Sync Room Status</button>
@@ -299,7 +426,7 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {reservations.map(res => (
+                                        {reservations.filter(r => !r.rentals || r.rentals.length === 0).map(res => (
                                             <tr key={res._id}>
                                                 <td style={{ fontSize: "11px", color: "var(--text-dim)" }}>{res.reservationNumber}</td>
                                                 <td>
@@ -309,7 +436,10 @@ export default function AdminDashboard() {
                                                 <td>
                                                     <div style={{ fontWeight: "600" }}>{res.room?.name}</div>
                                                     <div style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "700" }}>
-                                                        #{res.room?.roomNumber} {res.experiences?.length > 0 && `• ${res.experiences.length} Add-ons`}
+                                                        #{res.room?.roomNumber}
+                                                        {res.experiences?.length > 0 && res.experiences.map((e, idx) => (
+                                                            <div key={idx}>• {e.experience?.name} ({new Date(e.date).toLocaleDateString()})</div>
+                                                        ))}
                                                     </div>
                                                 </td>
                                                 <td>
@@ -320,18 +450,27 @@ export default function AdminDashboard() {
                                                     <div style={{ fontWeight: "700", fontSize: "12px" }}>{res.paymentMethod}</div>
                                                 </td>
                                                 <td>
-                                                    {res.paymentReceipt ? (
-                                                        <div style={{ display: "flex", gap: "8px", flexDirection: "column" }}>
-                                                            <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
-                                                                View Receipt
-                                                            </a>
-                                                            <a href={`${API_URL}${res.paymentReceipt}`} download style={styles.downloadBtn}>
-                                                                Download
-                                                            </a>
+                                                    <td>
+                                                        <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
+                                                            {res.paymentReceipt ? (
+                                                                <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
+                                                                    View Slip
+                                                                </a>
+                                                            ) : (
+                                                                <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Slip</span>
+                                                            )}
+                                                            <button
+                                                                onClick={() => navigate(`/admin/invoice/${res._id}`)}
+                                                                style={{
+                                                                    background: "var(--secondary)", color: "white", border: "none",
+                                                                    borderRadius: "6px", padding: "4px 8px", fontSize: "10px",
+                                                                    cursor: "pointer", fontWeight: "700"
+                                                                }}
+                                                            >
+                                                                Download Invoice
+                                                            </button>
                                                         </div>
-                                                    ) : (
-                                                        <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Receipt</span>
-                                                    )}
+                                                    </td>
                                                 </td>
                                                 <td>LKR {res.price.toLocaleString()}</td>
                                                 <td><span style={styles.resBadge}>{res.status}</span></td>
@@ -386,6 +525,124 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Upload</span>
                                                     )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "RENTAL_INVENTORY" && (
+                        <div style={styles.section}>
+                            <div style={styles.sectionHead}>
+                                <h2>Rental Vehicles ({rentals.length})</h2>
+                                <button style={styles.addBtn} onClick={() => { setEditingRental(null); setRentalForm({ name: "", type: "Vehicle", price: "", description: "", image: "", features: "" }); setShowRentalModal(true); }}><FaPlus /> Add Vehicle</button>
+                            </div>
+                            <div style={styles.tableWrapper}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Type</th>
+                                            <th>Price (LKR)</th>
+                                            <th>Features</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rentals.map(r => (
+                                            <tr key={r._id}>
+                                                <td style={{ fontWeight: "700" }}>{r.name}</td>
+                                                <td><span style={styles.badge}>{r.type}</span></td>
+                                                <td>{r.price.toLocaleString()}</td>
+                                                <td style={{ fontSize: "12px", color: "var(--text-dim)" }}>{r.features.join(", ")}</td>
+                                                <td>
+                                                    <button onClick={() => openEditRental(r)} style={styles.editBtn}>Edit</button>
+                                                    <button onClick={() => handleDeleteRental(r._id)} style={styles.deleteBtn}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "RENTAL_BOOKINGS" && (
+                        <div style={styles.section}>
+                            <h2>Rental Bookings ({rentalBookings.length})</h2>
+                            <div style={styles.tableWrapper}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Ref</th>
+                                            <th>Booked Date</th>
+                                            <th>Guest</th>
+                                            <th>Rentals (Dates)</th>
+                                            <th>Payment</th>
+                                            <th>Receipt</th>
+                                            <th>Driver Details</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rentalBookings.map(res => (
+                                            <tr key={res._id}>
+                                                <td style={{ fontSize: "11px", color: "var(--text-dim)" }}>{res.reservationNumber}</td>
+                                                <td style={{ fontSize: "12px" }}>{new Date(res.createdAt).toLocaleDateString()} {new Date(res.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                                <td>
+                                                    <div style={{ fontWeight: "600" }}>{res.user?.name}</div>
+                                                    <div style={{ fontSize: "12px" }}>{res.user?.contactNumber}</div>
+                                                </td>
+                                                <td>
+                                                    {res.rentals.map(r => (
+                                                        <div key={r._id} style={{ fontSize: "12px", fontWeight: "700", color: "var(--primary)", marginBottom: "4px" }}>
+                                                            {r.rental?.name || "Rental"}
+                                                            <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "400" }}>
+                                                                {new Date(r.startDate).toLocaleDateString()} - {new Date(r.endDate).toLocaleDateString()}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </td>
+                                                <td>
+                                                    <div style={{ fontWeight: "700", fontSize: "12px" }}>{res.paymentMethod}</div>
+                                                    <div style={{ fontSize: "11px" }}>LKR {res.price.toLocaleString()}</div>
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
+                                                        {res.paymentReceipt ? (
+                                                            <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
+                                                                View Slip
+                                                            </a>
+                                                        ) : <span style={{ fontSize: "10px", color: "#ccc" }}>No Slip</span>}
+
+                                                        <button
+                                                            onClick={() => navigate(`/admin/invoice/${res._id}`)}
+                                                            style={{
+                                                                background: "var(--secondary)", color: "white", border: "none",
+                                                                borderRadius: "6px", padding: "4px 8px", fontSize: "10px",
+                                                                cursor: "pointer", fontWeight: "700"
+                                                            }}
+                                                        >
+                                                            Download Invoice
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {res.driverDetails?.name ? (
+                                                        <div style={{ fontSize: "13px" }}>
+                                                            <div style={{ fontWeight: "700" }}>{res.driverDetails.name}</div>
+                                                            <div>{res.driverDetails.contact}</div>
+                                                            <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>{res.driverDetails.vehicleNo}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: "12px", color: "#ef4444", fontWeight: "700" }}>Not Assigned</span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <button onClick={() => openDriverModal(res)} style={{ ...styles.addBtn, padding: "6px 12px", fontSize: "12px" }}>Assign Driver</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -495,6 +752,77 @@ export default function AdminDashboard() {
                                         </label>
                                     </div>
                                     <button type="submit" style={styles.submitBtn}>{editingExp ? "Update Experience" : "Add Experience"}</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* RENTAL MODAL */}
+                    {showRentalModal && (
+                        <div style={styles.overlay} onClick={() => setShowRentalModal(false)}>
+                            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                                <header style={styles.mHead}>
+                                    <h2 style={{ margin: 0 }}>{editingRental ? "Edit Rental" : "Add Vehicle"}</h2>
+                                    <button style={styles.mClose} onClick={() => setShowRentalModal(false)}>✕</button>
+                                </header>
+                                <form onSubmit={handleAddEditRental} style={styles.form}>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Vehicle Name</label>
+                                        <input style={styles.fIn} placeholder="Tuk Tuk" required value={rentalForm.name} onChange={e => setRentalForm({ ...rentalForm, name: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fRow}>
+                                        <div style={styles.fGroup}>
+                                            <label style={styles.fLab}>Type</label>
+                                            <select style={styles.fSel} value={rentalForm.type} onChange={e => setRentalForm({ ...rentalForm, type: e.target.value })}>
+                                                <option value="Vehicle">Vehicle</option>
+                                                <option value="Bicycle">Bicycle</option>
+                                            </select>
+                                        </div>
+                                        <div style={styles.fGroup}>
+                                            <label style={styles.fLab}>Price (LKR)</label>
+                                            <input type="number" style={styles.fIn} required value={rentalForm.price} onChange={e => setRentalForm({ ...rentalForm, price: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Features (comma-separated)</label>
+                                        <input style={styles.fIn} placeholder="AC, Driver, Bluetooth" value={rentalForm.features} onChange={e => setRentalForm({ ...rentalForm, features: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Description</label>
+                                        <textarea style={{ ...styles.fIn, minHeight: "80px" }} required value={rentalForm.description} onChange={e => setRentalForm({ ...rentalForm, description: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Image URL</label>
+                                        <input style={styles.fIn} required value={rentalForm.image} onChange={e => setRentalForm({ ...rentalForm, image: e.target.value })} />
+                                    </div>
+                                    <button type="submit" style={styles.mSubmit}>Save Vehicle</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* DRIVER ASSIGNMENT MODAL */}
+                    {showDriverModal && (
+                        <div style={styles.overlay} onClick={() => setShowDriverModal(false)}>
+                            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                                <header style={styles.mHead}>
+                                    <h2 style={{ margin: 0 }}>Assign Driver</h2>
+                                    <button style={styles.mClose} onClick={() => setShowDriverModal(false)}>✕</button>
+                                </header>
+                                <form onSubmit={handleAssignDriver} style={styles.form}>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Driver Name</label>
+                                        <input style={styles.fIn} placeholder="Sunil Perera" required value={driverForm.name} onChange={e => setDriverForm({ ...driverForm, name: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Contact Number</label>
+                                        <input style={styles.fIn} placeholder="077..." required value={driverForm.contact} onChange={e => setDriverForm({ ...driverForm, contact: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Vehicle Number (Optional)</label>
+                                        <input style={styles.fIn} placeholder="WP CAB-1234" value={driverForm.vehicleNo} onChange={e => setDriverForm({ ...driverForm, vehicleNo: e.target.value })} />
+                                    </div>
+                                    <button type="submit" style={styles.mSubmit}>Assign Driver</button>
                                 </form>
                             </div>
                         </div>

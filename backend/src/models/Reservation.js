@@ -11,8 +11,22 @@ const reservationSchema = new mongoose.Schema({
     paymentReceipt: { type: String },
     status: { type: String, enum: ["PENDING", "CONFIRMED", "CANCELLED"], default: "CONFIRMED" },
     guests: { type: Number, default: 1 },
-    experiences: [{ type: mongoose.Schema.Types.ObjectId, ref: "Experience" }],
-    rentals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Rental" }],
+    experiences: [{
+        experience: { type: mongoose.Schema.Types.ObjectId, ref: "Experience" },
+        date: { type: Date }
+    }],
+    rentals: [{
+        rental: { type: mongoose.Schema.Types.ObjectId, ref: "Rental" },
+        startDate: { type: Date },
+        endDate: { type: Date },
+        days: { type: Number }
+    }],
+    driverDetails: {
+        name: { type: String },
+        contact: { type: String },
+        vehicleNo: { type: String },
+        status: { type: String, enum: ["PENDING", "ASSIGNED"], default: "PENDING" }
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Reservation", reservationSchema);

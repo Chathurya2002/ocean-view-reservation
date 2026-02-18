@@ -108,22 +108,49 @@ export default function SearchPage() {
 
         <div style={styles.grid}>
           {ROOMS.map((room) => (
-            <div key={room.id} style={styles.card}>
+            <div
+              key={room.id}
+              style={styles.card}
+              onClick={() => navigate(`/rooms?roomType=${room.id}`)}
+              onMouseEnter={(e) => {
+                // Image
+                const img = e.currentTarget.querySelector('.card-img');
+                if (img) {
+                  img.style.filter = "grayscale(0%)";
+                  img.style.transform = "scale(1.05)";
+                }
+                // Desc
+                const desc = e.currentTarget.querySelector('.card-desc');
+                if (desc) {
+                  desc.style.opacity = "1";
+                  desc.style.transform = "translateY(0)";
+                  desc.style.height = "auto";
+                }
+              }}
+              onMouseLeave={(e) => {
+                // Image
+                const img = e.currentTarget.querySelector('.card-img');
+                if (img) {
+                  img.style.filter = "grayscale(100%)";
+                  img.style.transform = "scale(1)";
+                }
+                // Desc
+                const desc = e.currentTarget.querySelector('.card-desc');
+                if (desc) {
+                  desc.style.opacity = "0";
+                  desc.style.transform = "translateY(20px)";
+                  desc.style.height = "0";
+                }
+              }}
+            >
               <div
+                className="card-img"
                 style={{ ...styles.cardImg, backgroundImage: `url(${room.image})` }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedImage({ url: room.image, name: room.name });
-                }}
-              >
-                <div style={styles.imageOverlay}>
-                  <span style={styles.zoomIcon}>🔍 Click to Enlarge</span>
-                </div>
-              </div>
-              <div style={styles.cardBody} onClick={() => navigate(`/rooms?roomType=${room.id}`)}>
+              />
+
+              <div style={styles.imageOverlay}>
                 <h3 style={styles.cardName}>{room.name}</h3>
-                <p style={styles.cardDesc}>{room.desc}</p>
-                <button style={styles.viewDetailsBtn}>View Details <FaArrowRight size={10} /></button>
+                <p className="card-desc" style={styles.cardDesc}>{room.desc}</p>
               </div>
             </div>
           ))}
@@ -168,106 +195,155 @@ export default function SearchPage() {
 const styles = {
   hero: {
     minHeight: "85vh",
-    background: "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url(https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800)",
+    background: "linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.4)), url(https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800)",
     backgroundSize: "cover",
     backgroundPosition: "center",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    padding: "0 24px"
+    padding: "0 24px",
+    position: "relative"
   },
-  heroContent: { maxWidth: "1000px", width: "100%" },
-  badge: { display: "inline-block", background: "white", padding: "8px 16px", borderRadius: "100px", fontSize: "12px", fontWeight: "800", color: "var(--primary)", boxShadow: "0 4px 12px rgba(44, 43, 43, 0.05)", marginBottom: "24px" },
+  heroContent: { maxWidth: "1000px", width: "100%", zIndex: 2 },
+  badge: { display: "inline-block", background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", padding: "8px 20px", borderRadius: "100px", fontSize: "12px", fontWeight: "700", color: "white", border: "1px solid rgba(255,255,255,0.3)", marginBottom: "24px", letterSpacing: "1px" },
   heroTitle: {
-    fontSize: "clamp(3rem, 7vw, 5rem)",
+    fontSize: "clamp(3rem, 7vw, 5.5rem)",
     fontWeight: "900",
     color: "white",
     letterSpacing: "-2px",
     lineHeight: "1.1",
     marginBottom: "24px",
-    textShadow: "0 4px 12px rgba(0,0,0,0.3)"
+    textShadow: "0 10px 30px rgba(0,0,0,0.3)"
   },
-  highlight: { color: "#60a5fa", position: "relative" },
+  highlight: { color: "#38bdf8", position: "relative" },
   heroSub: {
     fontSize: "1.2rem",
-    color: "rgba(255, 255, 255, 0.95)",
-    maxWidth: "550px",
+    color: "rgba(255, 255, 255, 0.9)",
+    maxWidth: "600px",
     margin: "0 auto 60px",
     lineHeight: "1.6",
-    textShadow: "0 2px 8px rgba(0,0,0,0.3)"
+    textShadow: "0 4px 10px rgba(0,0,0,0.3)"
   },
 
   searchContainer: { display: "flex", justifyContent: "center" },
   searchBox: {
-    background: "white",
-    padding: "10px",
+    background: "rgba(255, 255, 255, 0.95)",
+    backdropFilter: "blur(12px)",
+    padding: "12px",
     borderRadius: "24px",
     display: "flex",
     alignItems: "center",
-    boxShadow: "0 20px 50px -12px rgba(0,0,0,0.1)",
-    border: "1px solid rgba(0,0,0,0.05)",
-    maxWidth: "900px",
+    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+    border: "1px solid rgba(255,255,255,0.5)",
+    maxWidth: "950px",
     width: "100%",
     gap: "0"
   },
   inputGroup: {
     flex: 1,
-    padding: "10px 20px",
+    padding: "12px 24px",
     display: "flex",
     flexDirection: "column",
-    textAlign: "left"
+    textAlign: "left",
+    transition: "background 0.2s",
+    borderRadius: "16px"
   },
-  divider: { width: "1px", height: "40px", background: "#e2e8f0" },
-  label: { fontSize: "11px", fontWeight: "800", color: "#94a3b8", display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" },
-  input: { width: "100%", border: "none", background: "transparent", fontSize: "14px", fontWeight: "700", color: "var(--secondary)", outline: "none", padding: "4px 0" },
-  select: { width: "100%", border: "none", background: "transparent", fontSize: "14px", fontWeight: "700", color: "var(--secondary)", outline: "none", padding: "4px 0", cursor: "pointer" },
+  divider: { width: "1px", height: "40px", background: "#cbd5e1" },
+  label: { fontSize: "11px", fontWeight: "800", color: "#64748b", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" },
+  input: { width: "100%", border: "none", background: "transparent", fontSize: "15px", fontWeight: "700", color: "#1e293b", outline: "none", padding: "0" },
+  select: { width: "100%", border: "none", background: "transparent", fontSize: "15px", fontWeight: "700", color: "#1e293b", outline: "none", padding: "0", cursor: "pointer" },
 
   searchBtn: {
-    background: "var(--primary)",
+    background: "linear-gradient(135deg, #0ea5e9, #2563eb)",
     color: "white",
-    padding: "18px 32px",
+    padding: "20px 36px",
     border: "none",
-    borderRadius: "18px",
+    borderRadius: "20px",
     fontWeight: "800",
-    fontSize: "14px",
+    fontSize: "15px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    boxShadow: "0 10px 20px -5px var(--primary-light)",
-    transition: "transform 0.2s",
-    marginLeft: "10px"
+    boxShadow: "0 10px 20px -5px rgba(37, 99, 235, 0.4)",
+    transition: "all 0.2s",
+    marginLeft: "12px"
   },
 
-  section: { padding: "80px 24px", maxWidth: "1200px", margin: "0 auto" },
-  header: { textAlign: "center", marginBottom: "40px" },
-  title: { fontSize: "2.5rem", marginBottom: "12px", fontWeight: "800", letterSpacing: "-1px" },
-  sub: { color: "var(--text-dim)", fontSize: "1.1rem" },
+  section: { padding: "100px 24px", maxWidth: "1280px", margin: "0 auto" },
+  header: { textAlign: "center", marginBottom: "60px" },
+  title: { fontSize: "3rem", marginBottom: "16px", fontWeight: "800", letterSpacing: "-1px", color: "#0f172a" },
+  sub: { color: "#64748b", fontSize: "1.2rem", maxWidth: "600px", margin: "0 auto", lineHeight: "1.6" },
 
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "24px"
+    gap: "20px",
+    maxWidth: "1200px",
+    margin: "0 auto"
   },
   card: {
-    background: "white",
-    borderRadius: "20px",
+    position: "relative",
+    height: "450px",
+    borderRadius: "4px",
     overflow: "hidden",
-    border: "1px solid var(--border)",
+    cursor: "pointer",
+    boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)",
+  },
+
+  cardImg: {
+    width: "100%",
+    height: "100%",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    transition: "filter 0.4s ease, transform 0.6s ease",
+    filter: "grayscale(100%)"
+  },
+
+  // Overlay always present for text readability, steeper gradient
+  imageOverlay: {
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)",
     display: "flex",
     flexDirection: "column",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-    cursor: "pointer",
-    textAlign: "left"
+    justifyContent: "flex-end",
+    padding: "32px 24px",
+    transition: "all 0.3s ease"
   },
-  viewBtn: { background: "white", color: "var(--secondary)", padding: "8px 16px", borderRadius: "100px", border: "none", fontWeight: "800", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" },
-  cardBody: { padding: "20px" },
-  cardName: { fontSize: "16px", marginBottom: "6px", color: "var(--secondary)", fontWeight: "800" },
-  cardDesc: { color: "var(--text-dim)", fontSize: "12px", lineHeight: "1.6", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden" },
 
-  features: { padding: "60px 24px", background: "var(--secondary)", color: "white" },
-  featContent: { maxWidth: "1000px", margin: "0 auto", display: "flex", justifyContent: "center", gap: "60px", flexWrap: "wrap" },
-  featItem: { textAlign: "center", maxWidth: "250px" },
-  featIcon: { fontSize: "32px", marginBottom: "16px" },
+  // Text Styles
+  cardName: {
+    fontSize: "22px",
+    marginBottom: "8px",
+    color: "white",
+    fontWeight: "700",
+    letterSpacing: "0.5px",
+    textAlign: "center",
+    textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+  },
+  cardDesc: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: "13px",
+    lineHeight: "1.5",
+    textAlign: "center",
+    maxWidth: "100%",
+    opacity: 0, // Hidden by default, shown on hover
+    transform: "translateY(20px)",
+    transition: "all 0.3s ease",
+    height: "0",
+    overflow: "hidden"
+  },
+
+  features: { padding: "80px 24px", background: "#0f172a", color: "white" },
+  featContent: { maxWidth: "1000px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "40px", textAlign: "center" },
+  featItem: { padding: "24px" },
+  featIcon: { fontSize: "40px", marginBottom: "20px", display: "inline-block", background: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "24px" },
+
+  lightbox: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" },
+  closeBtn: { position: "absolute", top: "24px", right: "24px", background: "white", border: "none", borderRadius: "50%", width: "40px", height: "40px", fontSize: "20px", cursor: "pointer", zIndex: 2001 },
+  lightboxContent: { position: "relative", maxWidth: "1000px", width: "100%" },
+  lightboxImg: { width: "100%", borderRadius: "12px", display: "block" },
+  lightboxCaption: { position: "absolute", bottom: "-40px", left: 0, width: "100%", textAlign: "center", color: "white", fontSize: "16px", fontWeight: "600" }
 };

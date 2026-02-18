@@ -43,17 +43,70 @@ exports.createReservation = async (req, res) => {
         }
 
         // Add Experience Prices
+        let experienceData = [];
         if (experienceIds && Array.isArray(experienceIds) && experienceIds.length > 0) {
-            const selectedExperiences = await Experience.find({ _id: { $in: experienceIds } });
-            const experiencesTotal = selectedExperiences.reduce((sum, exp) => sum + exp.price, 0);
-            totalPrice += experiencesTotal;
+            // Expecting experienceIds to be array of strings or objects? 
+            // URL params usually send strings "id1,id2". 
+            // PaymentPage logic sends `experienceIds` as array of strings.
+            // But we need DATES now. 
+            // We need to change how data is sent from frontend first?
+            // User request: "userta date eka select krnn denn".
+            // So frontend will send array of objects? or we calculate here?
+            // To keep it simple with existing PaymentPage structure:
+            // I will update PaymentPage to send `experiences` array of objects [{id, date}] instead of just IDs.
+            // checking req.body.experiences instead of experienceIds for the new structure.
+
+            const experiencesPayload = req.body.experiences || []; // New standard
+            // Fallback for old simple ID array
+            const simpleIds = req.body.experienceIds || [];
+
+            // If new payload used
+            if (experiencesPayload.length > 0) {
+                for (const item of experiencesPayload) {
+                    const exp = await Experience.findById(item.id);
+                    if (exp) {
+                        totalPrice += exp.price;
+                        experienceData.push({ experience: exp._id, date: item.date || new Date() });
+                    }
+                }
+            } else if (simpleIds.length > 0) {
+                const selectedExperiences = await Experience.find({ _id: { $in: simpleIds } });
+                const experiencesTotal = selectedExperiences.reduce((sum, exp) => sum + exp.price, 0);
+                totalPrice += experiencesTotal;
+                experienceData = selectedExperiences.map(e => ({ experience: e._id, date: new Date() }));
+            }
         }
 
         // Add Rental Prices
-        if (rentalIds && Array.isArray(rentalIds) && rentalIds.length > 0) {
-            const selectedRentals = await Rental.find({ _id: { $in: rentalIds } });
+        let rentalData = [];
+        const rentalsPayload = req.body.rentals || [];
+        const simpleRentalIds = req.body.rentalIds || [];
+
+        if (rentalsPayload.length > 0) {
+            for (const item of rentalsPayload) {
+                const rental = await Rental.findById(item.id);
+                if (rental) {
+                    const rStart = new Date(item.startDate);
+                    const rEnd = new Date(item.endDate);
+                    const diffTime = Math.abs(rEnd - rStart);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include start day? Usually rentals are per 24h or calendar day. Let's say per day inclusive effectively or just diff. "dws gana". 
+                    // If user picks 1st to 1st, is it 1 day? Yes.
+                    const days = diffDays > 0 ? diffDays : 1;
+
+                    totalPrice += (rental.price * days);
+                    rentalData.push({
+                        rental: rental._id,
+                        startDate: rStart,
+                        endDate: rEnd,
+                        days: days
+                    });
+                }
+            }
+        } else if (simpleRentalIds.length > 0) {
+            const selectedRentals = await Rental.find({ _id: { $in: simpleRentalIds } });
             const rentalsTotal = selectedRentals.reduce((sum, rental) => sum + rental.price, 0);
             totalPrice += rentalsTotal;
+            rentalData = selectedRentals.map(r => ({ rental: r._id, startDate: new Date(), endDate: new Date(), days: 1 }));
         }
 
         // Generate unique reservation number
@@ -68,8 +121,8 @@ exports.createReservation = async (req, res) => {
             price: totalPrice,
             paymentMethod,
             guests: guests || 1,
-            experiences: experienceIds || [],
-            rentals: rentalIds || [],
+            experiences: experienceData,
+            rentals: rentalData,
             paymentReceipt: req.file ? `/uploads/${req.file.filename}` : null
         });
 
@@ -82,8 +135,32 @@ exports.createReservation = async (req, res) => {
 
 exports.getAllReservations = async (req, res) => {
     try {
-        const reservations = await Reservation.find({}).populate("user", "name email").populate("room", "name roomNumber");
+        const reservations = await Reservation.find({})
+            .populate("user", "name email")
+            .populate("room", "name roomNumber")
+            .populate("rentals.rental")
+            .populate("experiences.experience");
         res.json(reservations);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.updateReservation = async (req, res) => {
+    try {
+        const updatedReservation = await Reservation.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        )
+            .populate("user", "name email")
+            .populate("room", "name roomNumber")
+            .populate("rentals");
+
+        if (!updatedReservation) return res.status(404).json({ message: "Reservation not found" });
+
+        res.json(updatedReservation);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server error" });
@@ -95,8 +172,8 @@ exports.getReservation = async (req, res) => {
         const reservation = await Reservation.findById(req.params.id)
             .populate("room", "name roomNumber price image type")
             .populate("user", "name email")
-            .populate("experiences")
-            .populate("rentals");
+            .populate("experiences.experience")
+            .populate("rentals.rental");
         if (!reservation) return res.status(404).json({ message: "Reservation not found" });
         res.json(reservation);
     } catch (err) {

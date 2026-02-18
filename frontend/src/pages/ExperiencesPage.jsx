@@ -11,6 +11,10 @@ export default function ExperiencesPage() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const [selectedExp, setSelectedExp] = useState(null);
+    const [expDate, setExpDate] = useState("");
+    const [showExpModal, setShowExpModal] = useState(false);
+
     useEffect(() => {
         const fetchExperiences = async () => {
             try {
@@ -25,9 +29,15 @@ export default function ExperiencesPage() {
         fetchExperiences();
     }, []);
 
-    const handleBook = (exp) => {
-        const today = new Date().toISOString().split('T')[0];
-        navigate(`/payment?amount=${exp.price}&experienceIds=${exp._id}&checkIn=${today}&checkOut=${today}&guests=1`);
+    const openBookModal = (exp) => {
+        setSelectedExp(exp);
+        setExpDate(new Date().toISOString().split('T')[0]);
+        setShowExpModal(true);
+    };
+
+    const handleConfirmBook = () => {
+        if (!selectedExp || !expDate) return;
+        navigate(`/payment?amount=${selectedExp.price}&experienceIds=${selectedExp._id}&expDate=${expDate}&type=experience`);
     };
 
     if (loading) return <Layout><div style={styles.loader}>Exploring local wonders...</div></Layout>;
@@ -35,6 +45,7 @@ export default function ExperiencesPage() {
     return (
         <Layout>
             <div style={styles.page}>
+                {/* ... Hero ... */}
                 <div style={styles.hero}>
                     <div style={styles.heroContent}>
                         <h1 style={styles.heroTitle}>Extra <span style={{ color: "var(--primary)" }}>Trips</span> & Activities</h1>
@@ -46,6 +57,7 @@ export default function ExperiencesPage() {
                     <div style={styles.grid}>
                         {experiences.map(exp => (
                             <div key={exp._id} style={styles.card}>
+                                {/* ... Card Content ... */}
                                 <div style={{ ...styles.cardImg, backgroundImage: `url(${exp.image})` }}>
                                     <div style={styles.priceBadge}>LKR {exp.price.toLocaleString()}</div>
                                 </div>
@@ -67,7 +79,7 @@ export default function ExperiencesPage() {
                                     </div>
 
                                     <div style={styles.footer}>
-                                        <button onClick={() => handleBook(exp)} style={styles.bookBtn}>
+                                        <button onClick={() => openBookModal(exp)} style={styles.bookBtn}>
                                             Book Experience <FaCheckCircle size={12} />
                                         </button>
                                         <div style={styles.note}><FaInfoCircle size={10} /> Instant Confirmation</div>
@@ -77,6 +89,25 @@ export default function ExperiencesPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* EXPERIENCE DATE MODAL */}
+                {showExpModal && (
+                    <div style={styles.overlay} onClick={() => setShowExpModal(false)}>
+                        <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                            <h2 style={{ marginBottom: "20px" }}>Book {selectedExp?.name}</h2>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "700" }}>Select Date</label>
+                                    <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} style={styles.dateInput} />
+                                </div>
+                                <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "8px", marginTop: "10px" }}>
+                                    <strong>Total Price:</strong> LKR {selectedExp?.price.toLocaleString()}
+                                </div>
+                                <button onClick={handleConfirmBook} style={styles.mBtn}>Proceed to Payment</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </Layout>
     );
@@ -124,5 +155,9 @@ const styles = {
 
     footer: { marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" },
     bookBtn: { background: "var(--primary)", color: "white", padding: "12px", borderRadius: "12px", border: "none", fontWeight: "800", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s" },
-    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px", alignSelf: "center" }
+    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px", alignSelf: "center" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+    modal: { background: "white", padding: "32px", borderRadius: "24px", width: "90%", maxWidth: "400px", boxShadow: "var(--shadow)" },
+    dateInput: { width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "14px" },
+    mBtn: { background: "var(--primary)", color: "white", padding: "14px", borderRadius: "12px", border: "none", fontWeight: "800", marginTop: "16px", cursor: "pointer", width: "100%" }
 };

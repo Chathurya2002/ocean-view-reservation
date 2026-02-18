@@ -18,6 +18,9 @@ export default function PaymentPage() {
     const amount = searchParams.get("amount");
     const experienceIds = searchParams.get("experienceIds") ? searchParams.get("experienceIds").split(",") : [];
     const rentalIds = searchParams.get("rentalIds") ? searchParams.get("rentalIds").split(",") : [];
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const expDate = searchParams.get("expDate");
 
     const [loading, setLoading] = useState(false);
     const [cardData, setCardData] = useState({
@@ -57,8 +60,10 @@ export default function PaymentPage() {
                     paymentMethod: "CARD",
                     amount: parseFloat(amount),
                     paymentStatus: "PAID",
-                    experienceIds, // Include selected experiences
-                    rentalIds // Include selected rentals
+                    paymentStatus: "PAID",
+                    // New Payload Structure
+                    experiences: experienceIds.map(id => ({ id, date: expDate || new Date() })),
+                    rentals: rentalIds.map(id => ({ id, startDate: startDate || new Date(), endDate: endDate || new Date() }))
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });

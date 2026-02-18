@@ -19,6 +19,24 @@ exports.createRental = async (req, res) => {
     }
 };
 
+exports.updateRental = async (req, res) => {
+    try {
+        const updatedRental = await Rental.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedRental);
+    } catch (err) {
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+exports.deleteRental = async (req, res) => {
+    try {
+        await Rental.findByIdAndDelete(req.params.id);
+        res.json({ message: "Rental Deleted" });
+    } catch (err) {
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
 // Seed function to initialize some data if needed
 exports.seedRentals = async (req, res) => {
     try {
