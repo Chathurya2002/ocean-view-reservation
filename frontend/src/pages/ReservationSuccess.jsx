@@ -53,9 +53,16 @@ export default function ReservationSuccess() {
     if (loading) return <Layout><div style={{ textAlign: "center", padding: "100px" }}>Loading Receipt...</div></Layout>;
     if (!reservation) return null;
 
-    const { room, checkIn, checkOut, reservationNumber, paymentMethod, price } = reservation;
-    const nightCount = Math.ceil(Math.abs(new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
-    const totalAmount = nightCount * room.price;
+    const { room, checkIn, checkOut, reservationNumber, paymentMethod, price, experiences, rentals } = reservation;
+
+    // Calculate nights only if room exists
+    const nightCount = room ? Math.ceil(Math.abs(new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)) : 0;
+
+    // Calculate totals for display
+    const roomTotal = room ? nightCount * room.price : 0;
+    const expTotal = experiences ? experiences.reduce((sum, exp) => sum + exp.price, 0) : 0;
+    const rentalTotal = rentals ? rentals.reduce((sum, rent) => sum + rent.price, 0) : 0;
+    const calculatedTotal = roomTotal + expTotal + rentalTotal;
 
     return (
         <Layout>
@@ -88,21 +95,38 @@ export default function ReservationSuccess() {
                                 <span>Description</span>
                                 <span>Total</span>
                             </div>
-                            <div style={styles.tRow}>
-                                <div>
-                                    <strong>{room.name}</strong>
-                                    <div style={styles.sm}>Room #{room.roomNumber} • {nightCount} Night(s)</div>
-                                    <div style={styles.sm}>{new Date(checkIn).toLocaleDateString()} - {new Date(checkOut).toLocaleDateString()}</div>
+
+                            {/* Room Details */}
+                            {room && (
+                                <div style={styles.tRow}>
+                                    <div>
+                                        <strong>{room.name}</strong>
+                                        <div style={styles.sm}>Room #{room.roomNumber} • {nightCount} Night(s)</div>
+                                        <div style={styles.sm}>{new Date(checkIn).toLocaleDateString()} - {new Date(checkOut).toLocaleDateString()}</div>
+                                    </div>
+                                    <span>LKR {roomTotal.toLocaleString()}</span>
                                 </div>
-                                <span>LKR {totalAmount.toLocaleString()}</span>
-                            </div>
-                            {reservation.experiences && reservation.experiences.map(exp => (
+                            )}
+
+                            {/* Experiences */}
+                            {experiences && experiences.map(exp => (
                                 <div key={exp._id} style={styles.tRow}>
                                     <div>
-                                        <strong>{exp.name}</strong>
+                                        <strong>Experience: {exp.name}</strong>
                                         <div style={styles.sm}>{exp.category} • {exp.duration}</div>
                                     </div>
                                     <span>LKR {exp.price.toLocaleString()}</span>
+                                </div>
+                            ))}
+
+                            {/* Rentals */}
+                            {rentals && rentals.map(rental => (
+                                <div key={rental._id} style={styles.tRow}>
+                                    <div>
+                                        <strong>Rental: {rental.name}</strong>
+                                        <div style={styles.sm}>{rental.type}</div>
+                                    </div>
+                                    <span>LKR {rental.price.toLocaleString()}</span>
                                 </div>
                             ))}
                         </div>
@@ -110,15 +134,15 @@ export default function ReservationSuccess() {
                         <div style={styles.totalSection}>
                             <div style={styles.totalRow}>
                                 <span>Subtotal</span>
-                                <span>LKR {totalAmount.toLocaleString()}</span>
+                                <span>LKR {calculatedTotal.toLocaleString()}</span>
                             </div>
                             <div style={styles.totalRow}>
                                 <span>Taxes & Fees</span>
-                                <span>LKR 0</span>
+                                <span>Included</span>
                             </div>
                             <div style={{ ...styles.totalRow, fontSize: "18px", marginTop: "10px", color: "var(--primary)" }}>
                                 <span>Total Paid ({paymentMethod})</span>
-                                <span>LKR {totalAmount.toLocaleString()}</span>
+                                <span>LKR {price.toLocaleString()}</span>
                             </div>
                         </div>
 

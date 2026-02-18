@@ -28,11 +28,11 @@ export default function PaymentPage() {
     });
 
     useEffect(() => {
-        if (!roomId || !checkIn || !checkOut || !amount) {
+        if (!amount) {
             alert("Invalid payment session. Redirecting...");
             navigate("/");
         }
-    }, [roomId, checkIn, checkOut, amount, navigate]);
+    }, [amount, navigate]);
 
     const handlePayment = async (e) => {
         e.preventDefault();
@@ -50,10 +50,10 @@ export default function PaymentPage() {
             try {
                 // Create Reservation after successful payment simulation
                 const res = await axios.post(`${API_URL}/api/reservations`, {
-                    roomId,
-                    checkIn,
-                    checkOut,
-                    guests,
+                    roomId: roomId || null,
+                    checkIn: checkIn || new Date(),
+                    checkOut: checkOut || new Date(),
+                    guests: guests || 1,
                     paymentMethod: "CARD",
                     amount: parseFloat(amount),
                     paymentStatus: "PAID",
@@ -99,7 +99,7 @@ export default function PaymentPage() {
                     </div>
 
                     <div style={styles.summary}>
-                        <div style={styles.row}><span>Total Amount</span><span style={styles.amount}>LKR {parseInt(amount).toLocaleString()}</span></div>
+                        <div style={styles.row}><span>Total Amount</span><span style={styles.amount}>LKR {parseInt(amount || 0).toLocaleString()}</span></div>
                         <div style={styles.rowSmall}>Due Now</div>
                     </div>
 

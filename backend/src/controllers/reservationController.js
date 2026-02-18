@@ -7,29 +7,40 @@ exports.createReservation = async (req, res) => {
     try {
         const { roomId, checkIn, checkOut, paymentMethod, guests, experienceIds, rentalIds } = req.body;
 
-        const room = await Room.findById(roomId);
-        if (!room) return res.status(404).json({ message: "Room not found" });
+        let room = null;
+        let totalPrice = 0;
+        let start, end;
 
-        const start = new Date(checkIn);
-        const end = new Date(checkOut);
+        // ✅ If Room is selected, validate and calculate room price
+        if (roomId) {
+            room = await Room.findById(roomId);
+            if (!room) return res.status(404).json({ message: "Room not found" });
 
-        // 🛡️ Prevent Double Booking / Overlap
-        const isBooked = await Reservation.findOne({
-            room: roomId,
-            status: { $ne: "CANCELLED" },
-            checkIn: { $lt: end },
-            checkOut: { $gt: start }
-        });
+            start = new Date(checkIn);
+            end = new Date(checkOut);
 
-        if (isBooked) {
-            return res.status(400).json({ message: "This room is already reserved for the selected dates." });
+            // 🛡️ Prevent Double Booking / Overlap
+            const isBooked = await Reservation.findOne({
+                room: roomId,
+                status: { $ne: "CANCELLED" },
+                checkIn: { $lt: end },
+                checkOut: { $gt: start }
+            });
+
+            if (isBooked) {
+                return res.status(400).json({ message: "This room is already reserved for the selected dates." });
+            }
+
+            // Calculate nights and base room price
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const nights = diffDays > 0 ? diffDays : 1;
+            totalPrice = nights * room.price;
+        } else {
+            // Standalone Booking (Experience / Rental) - Use current date if not provided
+            start = checkIn ? new Date(checkIn) : new Date();
+            end = checkOut ? new Date(checkOut) : new Date();
         }
-
-        // Calculate nights and base room price
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const nights = diffDays > 0 ? diffDays : 1;
-        let totalPrice = nights * room.price;
 
         // Add Experience Prices
         if (experienceIds && Array.isArray(experienceIds) && experienceIds.length > 0) {
@@ -51,7 +62,7 @@ exports.createReservation = async (req, res) => {
         const reservation = await Reservation.create({
             reservationNumber,
             user: req.user._id,
-            room: roomId,
+            room: roomId || null,
             checkIn: start,
             checkOut: end,
             price: totalPrice,

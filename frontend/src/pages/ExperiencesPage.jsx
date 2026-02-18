@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { FaClock, FaTag, FaInfoCircle } from "react-icons/fa";
+import { FaClock, FaTag, FaInfoCircle, FaCheckCircle } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ExperiencesPage() {
     const [experiences, setExperiences] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchExperiences = async () => {
@@ -22,6 +24,11 @@ export default function ExperiencesPage() {
         };
         fetchExperiences();
     }, []);
+
+    const handleBook = (exp) => {
+        const today = new Date().toISOString().split('T')[0];
+        navigate(`/payment?amount=${exp.price}&experienceIds=${exp._id}&checkIn=${today}&checkOut=${today}&guests=1`);
+    };
 
     if (loading) return <Layout><div style={styles.loader}>Exploring local wonders...</div></Layout>;
 
@@ -60,7 +67,10 @@ export default function ExperiencesPage() {
                                     </div>
 
                                     <div style={styles.footer}>
-                                        <div style={styles.note}><FaInfoCircle size={10} /> {exp.notes}</div>
+                                        <button onClick={() => handleBook(exp)} style={styles.bookBtn}>
+                                            Book Experience <FaCheckCircle size={12} />
+                                        </button>
+                                        <div style={styles.note}><FaInfoCircle size={10} /> Instant Confirmation</div>
                                     </div>
                                 </div>
                             </div>
@@ -95,11 +105,11 @@ const styles = {
     container: { maxWidth: "1200px", margin: "0 auto", padding: "0 24px" },
     grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "32px" },
 
-    card: { background: "white", borderRadius: "24px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0", transition: "transform 0.3s ease" },
+    card: { background: "white", borderRadius: "24px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0", transition: "transform 0.3s ease", display: "flex", flexDirection: "column" },
     cardImg: { height: "240px", backgroundSize: "cover", backgroundPosition: "center", position: "relative" },
     priceBadge: { position: "absolute", bottom: "16px", right: "16px", background: "var(--primary)", color: "white", padding: "8px 16px", borderRadius: "12px", fontWeight: "800", fontSize: "14px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
 
-    cardBody: { padding: "24px", display: "flex", flexDirection: "column", gap: "16px" },
+    cardBody: { padding: "24px", display: "flex", flexDirection: "column", gap: "16px", flex: 1 },
     cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
     catTag: { fontSize: "11px", fontWeight: "800", color: "var(--primary)", background: "var(--primary-light)", padding: "4px 10px", borderRadius: "8px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "4px" },
     duration: { fontSize: "12px", color: "var(--text-dim)", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" },
@@ -112,6 +122,7 @@ const styles = {
     list: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "4px" },
     listItem: { fontSize: "13px", color: "var(--text-dim)", fontWeight: "600" },
 
-    footer: { marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "16px" },
-    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px" }
+    footer: { marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" },
+    bookBtn: { background: "var(--primary)", color: "white", padding: "12px", borderRadius: "12px", border: "none", fontWeight: "800", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s" },
+    note: { fontSize: "11px", color: "#94a3b8", fontWeight: "600", fontStyle: "italic", display: "flex", alignItems: "center", gap: "4px", alignSelf: "center" }
 };
