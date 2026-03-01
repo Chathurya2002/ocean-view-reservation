@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
-import { FaCalendarAlt, FaUser, FaBed, FaSearch, FaArrowRight } from "react-icons/fa";
+import { FaCalendarAlt, FaUser, FaBed, FaSearch, FaArrowRight, FaGift, FaTimes } from "react-icons/fa";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ROOMS = [
   {
@@ -40,6 +43,21 @@ export default function SearchPage() {
     guests: "2"
   });
 
+  const [activeOffers, setActiveOffers] = useState([]);
+  const [showOfferPopup, setShowOfferPopup] = useState(false);
+  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
+
+  useEffect(() => {
+    // Fetch active offers
+    axios.get(`${API_URL}/api/offers/active`)
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setActiveOffers(res.data);
+        }
+      })
+      .catch(err => console.error("Error fetching offers", err));
+  }, []);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSearch = () => {
@@ -54,7 +72,6 @@ export default function SearchPage() {
       {/* HERO SECTION */}
       <section style={styles.hero}>
         <div style={styles.heroContent}>
-          <div style={styles.badge}>✨ The Ultimate Escape</div>
           <h1 style={styles.heroTitle}>Refining <span style={styles.highlight}>Summer</span> Luxury</h1>
           <p style={styles.heroSub}>
             Book your stay at Ocean View and discover a new dimension of coastal tranquility.
@@ -168,6 +185,63 @@ export default function SearchPage() {
         </div>
       )}
 
+      {/* FLOATING OFFERS BUTTON */}
+      {activeOffers.length > 0 && (
+        <button
+          style={styles.floatingOfferBtn}
+          onClick={() => setShowOfferPopup(true)}
+          className="offer-float-btn"
+        >
+          <div style={styles.offerPulse}></div>
+          <FaGift size={24} />
+        </button>
+      )}
+
+      {/* OFFERS POPUP MODAL */}
+      {showOfferPopup && activeOffers.length > 0 && (
+        <div style={styles.offerOverlay} onClick={() => setShowOfferPopup(false)}>
+          <div style={styles.offerModal} onClick={e => e.stopPropagation()}>
+            <button style={styles.offerClose} onClick={() => setShowOfferPopup(false)}>
+              <FaTimes />
+            </button>
+            <div style={styles.offerContent}>
+              <div style={styles.offerIconWrapper}>
+                <FaGift size={32} color="var(--primary)" />
+              </div>
+              <h2 style={styles.offerTitle}>{activeOffers[currentOfferIndex].title}</h2>
+              <p style={styles.offerDesc}>{activeOffers[currentOfferIndex].description}</p>
+
+              {activeOffers[currentOfferIndex].discountCode && (
+                <div style={styles.offerCodeBox}>
+                  Use Code: <strong>{activeOffers[currentOfferIndex].discountCode}</strong>
+                </div>
+              )}
+
+              {activeOffers.length > 1 && (
+                <div style={styles.offerPagination}>
+                  <button
+                    style={styles.offerNavBtn}
+                    onClick={() => setCurrentOfferIndex(prev => prev === 0 ? activeOffers.length - 1 : prev - 1)}
+                  >
+                    Prev Offer
+                  </button>
+                  <span style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                    {currentOfferIndex + 1} / {activeOffers.length}
+                  </span>
+                  <button
+                    style={styles.offerNavBtn}
+                    onClick={() => setCurrentOfferIndex(prev => prev === activeOffers.length - 1 ? 0 : prev + 1)}
+                  >
+                    Next Offer
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FEATURES SECTION */}
       <section style={styles.features}>
         <div style={styles.featContent}>
@@ -194,8 +268,8 @@ export default function SearchPage() {
 
 const styles = {
   hero: {
-    minHeight: "85vh",
-    background: "linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.4)), url(https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/10/kk-beach-new-desk-banner-3.jpg?w=1920&h=800)",
+    minHeight: "90vh",
+    background: "linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.7)), url(https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?q=80&w=2070&auto=format&fit=crop)",
     backgroundSize: "cover",
     backgroundPosition: "center",
     display: "flex",
@@ -206,81 +280,90 @@ const styles = {
     position: "relative"
   },
   heroContent: { maxWidth: "1000px", width: "100%", zIndex: 2 },
-  badge: { display: "inline-block", background: "rgba(255,255,255,0.2)", backdropFilter: "blur(10px)", padding: "8px 20px", borderRadius: "100px", fontSize: "12px", fontWeight: "700", color: "white", border: "1px solid rgba(255,255,255,0.3)", marginBottom: "24px", letterSpacing: "1px" },
   heroTitle: {
-    fontSize: "clamp(3rem, 7vw, 5.5rem)",
+    fontSize: "clamp(3.5rem, 8vw, 6.5rem)",
     fontWeight: "900",
     color: "white",
-    letterSpacing: "-2px",
-    lineHeight: "1.1",
+    letterSpacing: "-2.5px",
+    lineHeight: "1.05",
     marginBottom: "24px",
-    textShadow: "0 10px 30px rgba(0,0,0,0.3)"
+    textShadow: "0 15px 40px rgba(0,0,0,0.4)"
   },
-  highlight: { color: "#38bdf8", position: "relative" },
+  // using a gentle gold/amber highlight for a more premium resort feel
+  highlight: {
+    background: "linear-gradient(to right, #fbbf24, #f59e0b)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    position: "relative"
+  },
   heroSub: {
-    fontSize: "1.2rem",
-    color: "rgba(255, 255, 255, 0.9)",
-    maxWidth: "600px",
+    fontSize: "1.25rem",
+    color: "rgba(255, 255, 255, 0.85)",
+    maxWidth: "650px",
     margin: "0 auto 60px",
     lineHeight: "1.6",
-    textShadow: "0 4px 10px rgba(0,0,0,0.3)"
+    textShadow: "0 4px 10px rgba(0,0,0,0.5)",
+    fontWeight: "400"
   },
 
   searchContainer: { display: "flex", justifyContent: "center" },
   searchBox: {
-    background: "rgba(255, 255, 255, 0.95)",
-    backdropFilter: "blur(12px)",
+    background: "rgba(255, 255, 255, 0.15)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
     padding: "12px",
-    borderRadius: "24px",
+    borderRadius: "28px",
     display: "flex",
     alignItems: "center",
-    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
-    border: "1px solid rgba(255,255,255,0.5)",
+    boxShadow: "0 30px 60px -15px rgba(0,0,0,0.5)",
+    border: "1px solid rgba(255,255,255,0.2)",
     maxWidth: "950px",
     width: "100%",
     gap: "0"
   },
+  // We use dark text for the inputs because the glass is light/transparent, so white text might blend in if the background is bright. I'll make the inputs use white text to match the dark hero overlay.
   inputGroup: {
     flex: 1,
-    padding: "12px 24px",
+    padding: "16px 24px",
     display: "flex",
     flexDirection: "column",
     textAlign: "left",
-    transition: "background 0.2s",
-    borderRadius: "16px"
+    transition: "background 0.3s ease",
+    borderRadius: "20px",
+    cursor: "pointer"
   },
-  divider: { width: "1px", height: "40px", background: "#cbd5e1" },
-  label: { fontSize: "11px", fontWeight: "800", color: "#64748b", display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" },
-  input: { width: "100%", border: "none", background: "transparent", fontSize: "15px", fontWeight: "700", color: "#1e293b", outline: "none", padding: "0" },
-  select: { width: "100%", border: "none", background: "transparent", fontSize: "15px", fontWeight: "700", color: "#1e293b", outline: "none", padding: "0", cursor: "pointer" },
+  divider: { width: "1px", height: "50px", background: "rgba(255,255,255,0.2)" },
+  label: { fontSize: "11px", fontWeight: "800", color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" },
+  input: { width: "100%", border: "none", background: "transparent", fontSize: "16px", fontWeight: "700", color: "#ffffff", outline: "none", padding: "0" },
+  select: { width: "100%", border: "none", background: "transparent", fontSize: "16px", fontWeight: "700", color: "#ffffff", outline: "none", padding: "0", cursor: "pointer" },
 
   searchBtn: {
-    background: "linear-gradient(135deg, #0ea5e9, #2563eb)",
+    background: "linear-gradient(135deg, #f59e0b, #d97706)",
     color: "white",
-    padding: "20px 36px",
+    padding: "24px 40px",
     border: "none",
     borderRadius: "20px",
     fontWeight: "800",
-    fontSize: "15px",
+    fontSize: "16px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    boxShadow: "0 10px 20px -5px rgba(37, 99, 235, 0.4)",
-    transition: "all 0.2s",
+    gap: "10px",
+    boxShadow: "0 10px 25px -5px rgba(245, 158, 11, 0.5)",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
     marginLeft: "12px"
   },
 
-  section: { padding: "100px 24px", maxWidth: "1280px", margin: "0 auto" },
-  header: { textAlign: "center", marginBottom: "60px" },
-  title: { fontSize: "3rem", marginBottom: "16px", fontWeight: "800", letterSpacing: "-1px", color: "#0f172a" },
-  sub: { color: "#64748b", fontSize: "1.2rem", maxWidth: "600px", margin: "0 auto", lineHeight: "1.6" },
+  section: { padding: "120px 24px", maxWidth: "1280px", margin: "0 auto", background: "var(--bg-main)", transition: "background 0.3s ease" },
+  header: { textAlign: "center", marginBottom: "80px" },
+  title: { fontSize: "3.5rem", marginBottom: "16px", fontWeight: "900", letterSpacing: "-1.5px", color: "var(--text-main)" },
+  sub: { color: "var(--text-dim)", fontSize: "1.25rem", maxWidth: "650px", margin: "0 auto", lineHeight: "1.6" },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "20px",
-    maxWidth: "1200px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "24px",
+    maxWidth: "1280px",
     margin: "0 auto"
   },
   card: {
@@ -336,14 +419,146 @@ const styles = {
     overflow: "hidden"
   },
 
-  features: { padding: "80px 24px", background: "#0f172a", color: "white" },
-  featContent: { maxWidth: "1000px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "40px", textAlign: "center" },
-  featItem: { padding: "24px" },
-  featIcon: { fontSize: "40px", marginBottom: "20px", display: "inline-block", background: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "24px" },
+  features: { padding: "100px 24px", background: "var(--bg-card)", color: "var(--text-main)", borderTop: "1px solid var(--border)", transition: "background 0.3s ease, border 0.3s ease" },
+  featContent: { maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "40px", textAlign: "center" },
+  featItem: { padding: "32px", background: "var(--bg-main)", borderRadius: "24px", border: "1px solid var(--border)", boxShadow: "0 10px 30px -15px rgba(0,0,0,0.1)", transition: "transform 0.3s ease" },
+  featIcon: { fontSize: "40px", marginBottom: "24px", display: "inline-block", background: "var(--primary-light)", color: "var(--primary)", padding: "20px", borderRadius: "24px" },
 
   lightbox: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" },
   closeBtn: { position: "absolute", top: "24px", right: "24px", background: "white", border: "none", borderRadius: "50%", width: "40px", height: "40px", fontSize: "20px", cursor: "pointer", zIndex: 2001 },
   lightboxContent: { position: "relative", maxWidth: "1000px", width: "100%" },
-  lightboxImg: { width: "100%", borderRadius: "12px", display: "block" },
-  lightboxCaption: { position: "absolute", bottom: "-40px", left: 0, width: "100%", textAlign: "center", color: "white", fontSize: "16px", fontWeight: "600" }
+  lightboxImg: { width: "100%", borderRadius: "12px", display: "block", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" },
+  lightboxCaption: { position: "absolute", bottom: "-40px", left: 0, width: "100%", textAlign: "center", color: "white", fontSize: "16px", fontWeight: "600", letterSpacing: "1px" },
+
+  // OFFERS FLOATING BUTTON STYLES
+  floatingOfferBtn: {
+    position: "fixed",
+    bottom: "30px",
+    right: "30px",
+    width: "60px",
+    height: "60px",
+    borderRadius: "50%",
+    backgroundColor: "var(--secondary)",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "none",
+    boxShadow: "0 10px 25px rgba(234, 179, 8, 0.4)",
+    cursor: "pointer",
+    zIndex: 999,
+    transition: "all 0.3s ease",
+  },
+  offerPulse: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    borderRadius: "50%",
+    backgroundColor: "var(--secondary)",
+    opacity: 0.5,
+    animation: "pulse 2s infinite",
+    zIndex: -1,
+  },
+  offerOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+    padding: "20px",
+  },
+  offerModal: {
+    backgroundColor: "var(--bg-main)",
+    borderRadius: "20px",
+    padding: "40px",
+    maxWidth: "400px",
+    width: "100%",
+    position: "relative",
+    boxShadow: "0 25px 50px rgba(0,0,0,0.3)",
+    textAlign: "center",
+    animation: "slideUp 0.4s ease-out",
+  },
+  offerClose: {
+    position: "absolute",
+    top: "15px",
+    right: "15px",
+    background: "transparent",
+    border: "none",
+    color: "var(--text-dim)",
+    fontSize: "18px",
+    cursor: "pointer",
+    transition: "color 0.2s",
+  },
+  offerIconWrapper: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(212, 175, 55, 0.1)", // Light primary tint
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px auto",
+  },
+  offerTitle: {
+    fontSize: "24px",
+    fontWeight: "800",
+    color: "var(--text-main)",
+    marginBottom: "12px",
+  },
+  offerDesc: {
+    fontSize: "15px",
+    lineHeight: "1.6",
+    color: "var(--text-dim)",
+    marginBottom: "24px",
+  },
+  offerCodeBox: {
+    backgroundColor: "var(--bg-card)",
+    border: "2px dashed var(--primary)",
+    padding: "12px 20px",
+    borderRadius: "8px",
+    fontSize: "16px",
+    color: "var(--text-main)",
+    display: "inline-block",
+    marginBottom: "20px",
+  },
+  offerPagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: "10px",
+    borderTop: "1px solid var(--border)",
+    paddingTop: "15px",
+  },
+  offerNavBtn: {
+    background: "transparent",
+    border: "none",
+    color: "var(--primary)",
+    fontWeight: "700",
+    cursor: "pointer",
+    fontSize: "14px",
+  }
 };
+
+// Add keyframes for animation
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .offer-float-btn:hover {
+    transform: scale(1.1) rotate(5deg);
+  }
+`;
+document.head.appendChild(styleSheet);

@@ -1,0 +1,5 @@
+R001,Standard,100.0,true
+R002,Standard,100.0,true
+R003,Deluxe,150.0,true
+R004,Deluxe,150.0,true
+R005,Suite,250.0,true

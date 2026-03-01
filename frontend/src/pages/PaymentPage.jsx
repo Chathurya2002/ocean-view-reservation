@@ -60,7 +60,6 @@ export default function PaymentPage() {
                     paymentMethod: "CARD",
                     amount: parseFloat(amount),
                     paymentStatus: "PAID",
-                    paymentStatus: "PAID",
                     // New Payload Structure
                     experiences: experienceIds.map(id => ({ id, date: expDate || new Date() })),
                     rentals: rentalIds.map(id => ({ id, startDate: startDate || new Date(), endDate: endDate || new Date() }))

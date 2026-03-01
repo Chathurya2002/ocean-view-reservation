@@ -19,6 +19,7 @@ app.use("/api/rooms", require("./routes/roomRoutes"));
 app.use("/api/experiences", require("./routes/experienceRoutes"));
 app.use("/api/reservations", require("./routes/reservationRoutes"));
 app.use("/api/rentals", require("./routes/rentals"));
+app.use("/api/offers", require("./routes/offerRoutes"));
 
 app.get("/", (req, res) => {
   res.send("Backend working");

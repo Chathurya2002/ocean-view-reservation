@@ -24,6 +24,28 @@
   color-scheme: light;
   color: var(--text-main);
   background-color: var(--bg-main);
+}
+
+[data-theme='dark'] {
+  --primary: #3b82f6;      /* Slightly brighter blue for dark mode */
+  --primary-light: #1e3a8a; /* Darker blue background */
+  --secondary: #e2e8f0;    /* Light text for headings */
+  --accent: #fbbf24;       /* Brighter amber */
+  
+  --bg-main: #0f172a;      /* Very dark slate */
+  --bg-card: #1e293b;      /* Dark slate for cards */
+  --border: #334155;       /* Dark border */
+  
+  --text-main: #f8fafc;    /* Light text */
+  --text-dim: #94a3b8;     /* Dim light text */
+  
+  --glass: rgba(15, 23, 42, 0.8);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  
+  color-scheme: dark;
+}
+
+body {
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

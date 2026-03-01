@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { FaPlus, FaCalendarAlt, FaUsers, FaChartLine, FaArrowRight, FaBed, FaDoorOpen, FaShieldAlt } from "react-icons/fa";
+import { FaPlus, FaCalendarAlt, FaUsers, FaChartLine, FaArrowRight, FaBed, FaDoorOpen, FaShieldAlt, FaMoon, FaSun, FaGift } from "react-icons/fa";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = "http://localhost:5000";
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState("ROOMS");
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const [rooms, setRooms] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [usersList, setUsersList] = useState([]);
@@ -35,6 +36,16 @@ export default function AdminDashboard() {
         notes: "",
         image: "",
         isAvailable: true
+    });
+
+    const [offers, setOffers] = useState([]);
+    const [showOfferModal, setShowOfferModal] = useState(false);
+    const [editingOffer, setEditingOffer] = useState(null);
+    const [offerForm, setOfferForm] = useState({
+        title: "",
+        description: "",
+        discountCode: "",
+        isActive: true
     });
 
     // RENTAL STATE
@@ -63,6 +74,12 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
+        const currentTheme = localStorage.getItem("theme");
+        if (currentTheme === "dark") {
+            setIsDarkMode(true);
+            document.documentElement.setAttribute("data-theme", "dark");
+        }
+
         if (!storedUser) {
             navigate("/");
             return;
@@ -86,21 +103,24 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("token");
-            const [roomsRes, resRes, usersRes, expRes, rentRes] = await Promise.all([
+            const results = await Promise.allSettled([
                 axios.get(`${API_URL}/api/rooms`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/reservations`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/auth/users`, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(`${API_URL}/api/experiences`),
-                axios.get(`${API_URL}/api/rentals`)
+                axios.get(`${API_URL}/api/rentals`),
+                axios.get(`${API_URL}/api/offers`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
-            setRooms(roomsRes.data);
-            setReservations(resRes.data);
-            setUsersList(usersRes.data);
-            setExperiences(expRes.data);
-            setRentals(rentRes.data);
+
+            setRooms(results[0].status === "fulfilled" ? results[0].value.data : []);
+            setReservations(results[1].status === "fulfilled" ? results[1].value.data : []);
+            setUsersList(results[2].status === "fulfilled" ? results[2].value.data : []);
+            setExperiences(results[3].status === "fulfilled" ? results[3].value.data : []);
+            setRentals(results[4].status === "fulfilled" ? results[4].value.data : []);
+            setOffers(results[5].status === "fulfilled" ? results[5].value.data : []);
 
             // Filter Rental Bookings
-            const rBookings = resRes.data.filter(r => r.rentals && r.rentals.length > 0);
+            const rBookings = results[1].status === "fulfilled" ? results[1].value.data.filter(r => r.rentals && r.rentals.length > 0) : [];
             setRentalBookings(rBookings);
         } catch (err) {
             console.error("Data fetch error:", err);
@@ -119,6 +139,13 @@ export default function AdminDashboard() {
             console.error(err);
             alert("Resync failed");
         }
+    };
+
+    const toggleTheme = () => {
+        const newTheme = isDarkMode ? "light" : "dark";
+        setIsDarkMode(!isDarkMode);
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
     };
 
     const handleDeleteReservation = async (id) => {
@@ -264,6 +291,56 @@ export default function AdminDashboard() {
         setShowRentalModal(true);
     };
 
+    // --- OFFERS HANDLERS ---
+    const handleAddEditOffer = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem("token");
+            if (editingOffer) {
+                await axios.put(`${API_URL}/api/offers/${editingOffer._id}`, offerForm, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Offer updated! ✅");
+            } else {
+                await axios.post(`${API_URL}/api/offers`, offerForm, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                alert("Offer added! ✅");
+            }
+            setShowOfferModal(false);
+            setEditingOffer(null);
+            setOfferForm({ title: "", description: "", discountCode: "", isActive: true });
+            fetchData();
+        } catch (err) {
+            alert("Error saving offer");
+        }
+    };
+
+    const handleDeleteOffer = async (id) => {
+        if (!window.confirm("Delete this offer?")) return;
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`${API_URL}/api/offers/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Offer deleted! 🗑️");
+            fetchData();
+        } catch (err) {
+            alert("Error deleting offer");
+        }
+    };
+
+    const openEditOffer = (offer) => {
+        setEditingOffer(offer);
+        setOfferForm({
+            title: offer.title,
+            description: offer.description,
+            discountCode: offer.discountCode || "",
+            isActive: offer.isActive
+        });
+        setShowOfferModal(true);
+    };
+
     // --- DRIVER ASSIGNMENT HANDLERS ---
     const openDriverModal = (booking) => {
         setSelectedBooking(booking);
@@ -320,11 +397,15 @@ export default function AdminDashboard() {
                             <button onClick={() => setActiveTab("ROOMS")} style={activeTab === "ROOMS" ? styles.tabActive : styles.tab}>Rooms</button>
                             <button onClick={() => setActiveTab("RENTAL_INVENTORY")} style={activeTab === "RENTAL_INVENTORY" ? styles.tabActive : styles.tab}>Rentals</button>
                             <button onClick={() => setActiveTab("EXPERIENCES")} style={activeTab === "EXPERIENCES" ? styles.tabActive : styles.tab}>Experiences</button>
+                            <button onClick={() => setActiveTab("OFFERS")} style={activeTab === "OFFERS" ? styles.tabActive : styles.tab}>Offers</button>
                             <button onClick={() => setActiveTab("RESERVATIONS")} style={activeTab === "RESERVATIONS" ? styles.tabActive : styles.tab}>Bookings</button>
                             <button onClick={() => setActiveTab("RENTAL_BOOKINGS")} style={activeTab === "RENTAL_BOOKINGS" ? styles.tabActive : styles.tab}>Rental Bookings</button>
                             <button onClick={() => setActiveTab("USERS")} style={activeTab === "USERS" ? styles.tabActive : styles.tab}>Guests</button>
-                            <button onClick={fetchData} style={styles.refreshBtn}>Refresh Data</button>
+                            <button onClick={() => setActiveTab("HELP")} style={activeTab === "HELP" ? styles.tabActive : styles.tab}>Help</button>
                             <button onClick={handleResync} style={styles.syncBtn}>Sync Room Status</button>
+                            <button onClick={toggleTheme} style={styles.themeToggle}>
+                                {isDarkMode ? <FaSun size={18} /> : <FaMoon size={18} />}
+                            </button>
                         </div>
                     </header>
 
@@ -398,6 +479,48 @@ export default function AdminDashboard() {
                                                 <td>
                                                     <button onClick={() => openEditExp(exp)} style={styles.editBtn}>Edit</button>
                                                     <button onClick={() => handleDeleteExp(exp._id)} style={styles.deleteBtn}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "OFFERS" && (
+                        <div style={styles.section}>
+                            <div style={styles.sectionHead}>
+                                <h2>Special Offers ({offers.length})</h2>
+                                <button style={styles.addBtn} onClick={() => { setEditingOffer(null); setOfferForm({ title: "", description: "", discountCode: "", isActive: true }); setShowOfferModal(true); }}><FaPlus /> Add New Offer</button>
+                            </div>
+                            <div style={styles.tableWrapper}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Description</th>
+                                            <th>Discount Code</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {offers.map(off => (
+                                            <tr key={off._id}>
+                                                <td style={{ fontWeight: "700", color: "var(--primary)" }}>{off.title}</td>
+                                                <td style={{ fontSize: "13px" }}>{off.description}</td>
+                                                <td>
+                                                    {off.discountCode ? <span style={styles.badge}>{off.discountCode}</span> : <span style={{ fontSize: "12px", color: "#ccc" }}>None</span>}
+                                                </td>
+                                                <td>
+                                                    <span style={off.isActive ? styles.statusAvail : styles.statusBooked}>
+                                                        {off.isActive ? "Active" : "Inactive"}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button onClick={() => openEditOffer(off)} style={styles.editBtn}>Edit</button>
+                                                    <button onClick={() => handleDeleteOffer(off._id)} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -652,6 +775,55 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
+                    {activeTab === "HELP" && (
+                        <div style={styles.section}>
+                            <div style={styles.sectionHead}>
+                                <h2>Dashboard User Guide</h2>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>🛎️ Rooms Management</h3>
+                                    <p style={styles.helpText}><strong>View Rooms:</strong> See all available and occupied rooms along with their details (Category, Price).</p>
+                                    <p style={styles.helpText}><strong>Add Room:</strong> Click "Add New Room" to add a new room to the inventory. Ensure the room number is unique.</p>
+                                    <p style={styles.helpText}><strong>Sync Room Status:</strong> Click "Sync Room Status" in the top bar to update the availability of rooms based on current bookings.</p>
+                                </div>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>🚗 Rentals Inventory</h3>
+                                    <p style={styles.helpText}><strong>Manage Vehicles:</strong> View, add, edit, or delete vehicles available for rent by guests.</p>
+                                    <p style={styles.helpText}><strong>Adding a Vehicle:</strong> Provide details like Name, Type (Vehicle/Bicycle), Price, Features (comma separated), and an Image URL.</p>
+                                </div>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>🌴 Experiences</h3>
+                                    <p style={styles.helpText}><strong>Manage Activities:</strong> Handle all tours, trips, and activities offered by the resort.</p>
+                                    <p style={styles.helpText}><strong>Details:</strong> Specify Duration, Category, Inclusions, and set whether it is currently available for booking.</p>
+                                </div>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>📅 Bookings (Room Reservations)</h3>
+                                    <p style={styles.helpText}><strong>View Bookings:</strong> Monitor all guest reservations including dates, booked rooms, and total amounts.</p>
+                                    <p style={styles.helpText}><strong>Payment Slips:</strong> Click "View Slip" to check uploaded bank transfer receipts.</p>
+                                    <p style={styles.helpText}><strong>Invoices:</strong> Download a professional PDF invoice for any reservation by clicking "Download Invoice".</p>
+                                </div>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>🚖 Rental Bookings & Drivers</h3>
+                                    <p style={styles.helpText}><strong>Track Rentals:</strong> View all reservations that include a vehicle rental.</p>
+                                    <p style={styles.helpText}><strong>Assign Drivers:</strong> Click "Assign Driver" to allocate a specific driver and vehicle number for a guest's rental booking.</p>
+                                </div>
+
+                                <div style={styles.helpCard}>
+                                    <h3 style={styles.helpTitle}>👥 Guests (User Management)</h3>
+                                    <p style={styles.helpText}><strong>Guest Profiles:</strong> View registered users, their contact details, and addresses.</p>
+                                    <p style={styles.helpText}><strong>ID Verification:</strong> Check uploaded ID or Passport images for verification purposes.</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
+
                     {/* ADD ROOM MODAL */}
                     {showAddRoom && (
                         <div style={styles.overlay} onClick={() => setShowAddRoom(false)}>
@@ -801,6 +973,39 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
+                    {/* OFFERS MODAL */}
+                    {showOfferModal && (
+                        <div style={styles.overlay} onClick={() => setShowOfferModal(false)}>
+                            <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                                <header style={styles.mHead}>
+                                    <h2 style={{ margin: 0 }}>{editingOffer ? "Edit Offer" : "Add Offer"}</h2>
+                                    <button style={styles.mClose} onClick={() => setShowOfferModal(false)}>✕</button>
+                                </header>
+                                <form onSubmit={handleAddEditOffer} style={styles.form}>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Offer Title</label>
+                                        <input style={styles.fIn} placeholder="e.g. Summer Special 25% Off" required value={offerForm.title} onChange={e => setOfferForm({ ...offerForm, title: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Description</label>
+                                        <textarea style={{ ...styles.fIn, minHeight: "80px" }} placeholder="Enter offer details..." required value={offerForm.description} onChange={e => setOfferForm({ ...offerForm, description: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={styles.fLab}>Discount Code (Optional)</label>
+                                        <input style={styles.fIn} placeholder="SUMMER25" value={offerForm.discountCode} onChange={e => setOfferForm({ ...offerForm, discountCode: e.target.value })} />
+                                    </div>
+                                    <div style={styles.fGroup}>
+                                        <label style={{ ...styles.fLab, display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <input type="checkbox" checked={offerForm.isActive} onChange={e => setOfferForm({ ...offerForm, isActive: e.target.checked })} />
+                                            Active Offer
+                                        </label>
+                                    </div>
+                                    <button type="submit" style={styles.mSubmit}>{editingOffer ? "Update Offer" : "Save Offer"}</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
                     {/* DRIVER ASSIGNMENT MODAL */}
                     {showDriverModal && (
                         <div style={styles.overlay} onClick={() => setShowDriverModal(false)}>
@@ -834,47 +1039,52 @@ export default function AdminDashboard() {
 }
 
 const styles = {
-    page: { background: "#f8fafc", minHeight: "100vh", padding: "60px 40px" },
+    page: { background: "var(--bg-main)", minHeight: "100vh", padding: "60px 40px", transition: "background 0.3s ease", color: "var(--text-main)" },
     container: { maxWidth: "1200px", margin: "0 auto" },
     header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "40px" },
-    title: { fontSize: "32px", fontWeight: "900", letterSpacing: "-1px" },
+    title: { fontSize: "32px", fontWeight: "900", letterSpacing: "-1px", color: "var(--text-main)" },
     subtitle: { color: "var(--text-dim)", fontSize: "16px" },
 
-    tabBar: { background: "white", padding: "8px", borderRadius: "16px", display: "flex", gap: "8px", border: "1px solid var(--border)" },
-    tab: { padding: "10px 20px", border: "none", background: "transparent", borderRadius: "10px", fontWeight: "700", cursor: "pointer", color: "var(--text-dim)" },
-    tabActive: { padding: "10px 20px", border: "none", background: "var(--primary)", color: "white", borderRadius: "10px", fontWeight: "700", cursor: "pointer" },
+    tabBar: { background: "var(--bg-card)", padding: "8px", borderRadius: "16px", display: "flex", gap: "8px", border: "1px solid var(--border)", boxShadow: "var(--shadow)", alignItems: "center" },
+    tab: { padding: "10px 20px", border: "none", background: "transparent", borderRadius: "10px", fontWeight: "700", cursor: "pointer", color: "var(--text-dim)", transition: "all 0.2s" },
+    tabActive: { padding: "10px 20px", border: "none", background: "var(--primary)", color: "white", borderRadius: "10px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)" },
     refreshBtn: { background: "none", border: "none", color: "var(--primary)", fontWeight: "800", cursor: "pointer", fontSize: "13px", padding: "0 12px" },
-    syncBtn: { background: "#f1f5f9", border: "none", color: "var(--secondary)", fontWeight: "800", cursor: "pointer", fontSize: "11px", padding: "6px 12px", borderRadius: "8px" },
+    syncBtn: { background: "var(--primary-light)", border: "none", color: "var(--primary)", fontWeight: "800", cursor: "pointer", fontSize: "12px", padding: "8px 16px", borderRadius: "10px", transition: "all 0.2s" },
+    themeToggle: { background: "var(--bg-main)", border: "1px solid var(--border)", color: "var(--text-main)", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "10px", cursor: "pointer", transition: "all 0.2s" },
 
-    section: { background: "white", padding: "32px", borderRadius: "32px", border: "1px solid var(--border)", boxShadow: "var(--shadow)" },
+    section: { background: "var(--bg-card)", padding: "32px", borderRadius: "24px", border: "1px solid var(--border)", boxShadow: "var(--shadowLg)", transition: "all 0.3s ease" },
     sectionHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" },
-    addBtn: { background: "var(--primary)", color: "white", border: "none", padding: "12px 24px", borderRadius: "14px", fontWeight: "800", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" },
+    addBtn: { background: "var(--primary)", color: "white", border: "none", padding: "12px 24px", borderRadius: "12px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)" },
 
     tableWrapper: { overflowX: "auto" },
     table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-    th: { padding: "16px", borderBottom: "2px solid #f1f5f9", color: "var(--text-dim)", fontSize: "13px", textTransform: "uppercase", fontWeight: "800" },
-    td: { padding: "16px", borderBottom: "1px solid #f1f5f9", fontSize: "15px" },
+    th: { padding: "16px", borderBottom: "2px solid var(--border)", color: "var(--text-dim)", fontSize: "13px", textTransform: "uppercase", fontWeight: "800" },
+    td: { padding: "16px", borderBottom: "1px solid var(--border)", fontSize: "15px", color: "var(--text-main)" },
 
-    badge: { background: "#f1f5f9", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "800" },
+    badge: { background: "var(--bg-main)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "800", color: "var(--text-main)" },
     resBadge: { background: "var(--primary-light)", color: "var(--primary)", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "800" },
-    editBtn: { background: "#dbeafe", color: "#1e40af", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", cursor: "pointer", marginRight: "8px" },
-    deleteBtn: { background: "#fee2e2", color: "#991b1b", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", cursor: "pointer" },
-    statusAvail: { background: "#dcfce7", color: "#166534", padding: "4px 12px", borderRadius: "100px", fontSize: "12px", fontWeight: "800" },
-    statusBooked: { background: "#fee2e2", color: "#991b1b", padding: "4px 12px", borderRadius: "100px", fontSize: "12px", fontWeight: "800" },
-    viewImgBtn: { display: "inline-block", background: "var(--primary-light)", color: "var(--primary)", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center" },
-    downloadBtn: { display: "inline-block", background: "#dcfce7", color: "#166534", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center" },
+    editBtn: { background: "var(--primary-light)", color: "var(--primary)", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer", marginRight: "8px", transition: "all 0.2s" },
+    deleteBtn: { background: "rgba(220, 38, 38, 0.1)", color: "#ef4444", border: "none", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" },
+    statusAvail: { background: "rgba(34, 197, 94, 0.1)", color: "#16a34a", padding: "6px 14px", borderRadius: "100px", fontSize: "12px", fontWeight: "700" },
+    statusBooked: { background: "rgba(239, 68, 68, 0.1)", color: "#dc2626", padding: "6px 14px", borderRadius: "100px", fontSize: "12px", fontWeight: "700" },
+    viewImgBtn: { display: "inline-block", background: "var(--primary-light)", color: "var(--primary)", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center", transition: "all 0.2s" },
+    downloadBtn: { display: "inline-block", background: "rgba(34, 197, 94, 0.1)", color: "#16a34a", padding: "6px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textDecoration: "none", textAlign: "center", transition: "all 0.2s" },
 
-    overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" },
-    modal: { background: "white", width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", borderRadius: "32px", padding: "40px" },
-    mHead: { display: "flex", justifyContent: "space-between", marginBottom: "32px" },
-    mClose: { border: "none", background: "none", fontSize: "24px", cursor: "pointer" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" },
+    modal: { background: "var(--bg-card)", width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", borderRadius: "24px", padding: "40px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", border: "1px solid var(--border)", color: "var(--text-main)" },
+    mHead: { display: "flex", justifyContent: "space-between", marginBottom: "32px", alignItems: "center" },
+    mClose: { border: "none", background: "var(--bg-main)", color: "var(--text-main)", width: "40px", height: "40px", borderRadius: "50%", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" },
 
     form: { display: "flex", flexDirection: "column", gap: "20px" },
     fRow: { display: "flex", gap: "16px" },
     fGroup: { flex: 1, display: "flex", flexDirection: "column", gap: "8px" },
-    fLab: { fontSize: "13px", fontWeight: "700" },
-    fIn: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc", fontSize: "14px" },
-    fSel: { padding: "12px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "#f8fafc", fontSize: "14px" },
-    submitBtn: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "800", cursor: "pointer", fontSize: "15px" },
-    mSubmit: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "14px", fontWeight: "800", cursor: "pointer" }
+    fLab: { fontSize: "13px", fontWeight: "700", color: "var(--text-dim)" },
+    fIn: { padding: "14px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "var(--bg-main)", color: "var(--text-main)", fontSize: "14px", transition: "all 0.2s" },
+    fSel: { padding: "14px 16px", borderRadius: "12px", border: "1px solid var(--border)", background: "var(--bg-main)", color: "var(--text-main)", fontSize: "14px", transition: "all 0.2s" },
+    submitBtn: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "12px", fontWeight: "800", cursor: "pointer", fontSize: "15px", transition: "all 0.2s", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)" },
+    mSubmit: { background: "var(--primary)", color: "white", border: "none", padding: "16px", borderRadius: "12px", fontWeight: "800", cursor: "pointer", transition: "all 0.2s", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)" },
+
+    helpCard: { background: "var(--bg-main)", padding: "24px", borderRadius: "16px", border: "1px solid var(--border)", transition: "all 0.2s" },
+    helpTitle: { margin: "0 0 12px 0", fontSize: "18px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" },
+    helpText: { margin: "0 0 8px 0", fontSize: "14px", color: "var(--text-dim)", lineHeight: "1.6" }
 };
