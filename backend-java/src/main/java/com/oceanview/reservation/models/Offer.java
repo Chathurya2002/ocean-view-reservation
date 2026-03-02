@@ -13,5 +13,6 @@ public class Offer {
     private String description;
     private String discountCode;
     private Boolean isActive = true;
+    private Double discountPercentage;
     private java.util.Date createdAt = new java.util.Date();
 }

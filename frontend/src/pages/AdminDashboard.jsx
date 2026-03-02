@@ -11,6 +11,7 @@ export default function AdminDashboard() {
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState("ROOMS");
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [reportMonth, setReportMonth] = useState(new Date().toISOString().slice(0, 7));
     const [rooms, setRooms] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [usersList, setUsersList] = useState([]);
@@ -187,7 +188,7 @@ export default function AdminDashboard() {
             const payload = { ...expForm, includes: includesArray };
 
             if (editingExp) {
-                await axios.put(`${API_URL}/api/experiences/${editingExp._id}`, payload, {
+                await axios.put(`${API_URL}/api/experiences/${(editingExp._id || editingExp.id)}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 alert("Experience updated! ✅");
@@ -245,7 +246,7 @@ export default function AdminDashboard() {
             const payload = { ...rentalForm, features: featuresArray };
 
             if (editingRental) {
-                await axios.put(`${API_URL}/api/rentals/${editingRental._id}`, payload, {
+                await axios.put(`${API_URL}/api/rentals/${(editingRental._id || editingRental.id)}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 alert("Rental updated! ✅");
@@ -297,7 +298,7 @@ export default function AdminDashboard() {
         try {
             const token = localStorage.getItem("token");
             if (editingOffer) {
-                await axios.put(`${API_URL}/api/offers/${editingOffer._id}`, offerForm, {
+                await axios.put(`${API_URL}/api/offers/${(editingOffer._id || editingOffer.id)}`, offerForm, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 alert("Offer updated! ✅");
@@ -366,7 +367,7 @@ export default function AdminDashboard() {
             // I should check reservationRoutes.js. If not, I need to add it.
             // For now, I'll assume I need to add/use PUT.
 
-            await axios.put(`${API_URL}/api/reservations/${selectedBooking._id}`, {
+            await axios.put(`${API_URL}/api/reservations/${(selectedBooking._id || selectedBooking.id)}`, {
                 driverDetails: driverForm
             }, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -398,6 +399,7 @@ export default function AdminDashboard() {
                             <button onClick={() => setActiveTab("RENTAL_INVENTORY")} style={activeTab === "RENTAL_INVENTORY" ? styles.tabActive : styles.tab}>Rentals</button>
                             <button onClick={() => setActiveTab("EXPERIENCES")} style={activeTab === "EXPERIENCES" ? styles.tabActive : styles.tab}>Experiences</button>
                             <button onClick={() => setActiveTab("OFFERS")} style={activeTab === "OFFERS" ? styles.tabActive : styles.tab}>Offers</button>
+                            <button onClick={() => setActiveTab("REPORTS")} style={activeTab === "REPORTS" ? styles.tabActive : styles.tab}>Reports</button>
                             <button onClick={() => setActiveTab("RESERVATIONS")} style={activeTab === "RESERVATIONS" ? styles.tabActive : styles.tab}>Bookings</button>
                             <button onClick={() => setActiveTab("RENTAL_BOOKINGS")} style={activeTab === "RENTAL_BOOKINGS" ? styles.tabActive : styles.tab}>Rental Bookings</button>
                             <button onClick={() => setActiveTab("USERS")} style={activeTab === "USERS" ? styles.tabActive : styles.tab}>Guests</button>
@@ -428,7 +430,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {rooms.map(r => (
-                                            <tr key={r._id}>
+                                            <tr key={(r._id || r.id)}>
                                                 <td style={{ fontWeight: "800", color: "var(--primary)" }}>#{r.roomNumber}</td>
                                                 <td>{r.name}</td>
                                                 <td><span style={styles.badge}>{r.type}</span></td>
@@ -466,7 +468,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {experiences.map(exp => (
-                                            <tr key={exp._id}>
+                                            <tr key={(exp._id || exp.id)}>
                                                 <td style={{ fontWeight: "700" }}>{exp.name}</td>
                                                 <td><span style={styles.badge}>{exp.category}</span></td>
                                                 <td>{exp.price.toLocaleString()}</td>
@@ -478,7 +480,7 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     <button onClick={() => openEditExp(exp)} style={styles.editBtn}>Edit</button>
-                                                    <button onClick={() => handleDeleteExp(exp._id)} style={styles.deleteBtn}>Delete</button>
+                                                    <button onClick={() => handleDeleteExp((exp._id || exp.id))} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -507,7 +509,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {offers.map(off => (
-                                            <tr key={off._id}>
+                                            <tr key={(off._id || off.id)}>
                                                 <td style={{ fontWeight: "700", color: "var(--primary)" }}>{off.title}</td>
                                                 <td style={{ fontSize: "13px" }}>{off.description}</td>
                                                 <td>
@@ -520,7 +522,7 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     <button onClick={() => openEditOffer(off)} style={styles.editBtn}>Edit</button>
-                                                    <button onClick={() => handleDeleteOffer(off._id)} style={styles.deleteBtn}>Delete</button>
+                                                    <button onClick={() => handleDeleteOffer((off._id || off.id))} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -550,7 +552,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {reservations.filter(r => !r.rentals || r.rentals.length === 0).map(res => (
-                                            <tr key={res._id}>
+                                            <tr key={(res._id || res.id)}>
                                                 <td style={{ fontSize: "11px", color: "var(--text-dim)" }}>{res.reservationNumber}</td>
                                                 <td>
                                                     <div style={{ fontWeight: "600" }}>{res.user?.name}</div>
@@ -573,32 +575,30 @@ export default function AdminDashboard() {
                                                     <div style={{ fontWeight: "700", fontSize: "12px" }}>{res.paymentMethod}</div>
                                                 </td>
                                                 <td>
-                                                    <td>
-                                                        <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
-                                                            {res.paymentReceipt ? (
-                                                                <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
-                                                                    View Slip
-                                                                </a>
-                                                            ) : (
-                                                                <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Slip</span>
-                                                            )}
-                                                            <button
-                                                                onClick={() => navigate(`/admin/invoice/${res._id}`)}
-                                                                style={{
-                                                                    background: "var(--secondary)", color: "white", border: "none",
-                                                                    borderRadius: "6px", padding: "4px 8px", fontSize: "10px",
-                                                                    cursor: "pointer", fontWeight: "700"
-                                                                }}
-                                                            >
-                                                                Download Invoice
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                                    <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
+                                                        {res.paymentReceipt ? (
+                                                            <a href={`${API_URL}${res.paymentReceipt}`} target="_blank" rel="noreferrer" style={styles.viewImgBtn}>
+                                                                View Slip
+                                                            </a>
+                                                        ) : (
+                                                            <span style={{ fontSize: "11px", color: "#94a3b8" }}>No Slip</span>
+                                                        )}
+                                                        <button
+                                                            onClick={() => navigate(`/admin/invoice/${(res._id || res.id)}`)}
+                                                            style={{
+                                                                background: "var(--secondary)", color: "white", border: "none",
+                                                                borderRadius: "6px", padding: "4px 8px", fontSize: "10px",
+                                                                cursor: "pointer", fontWeight: "700"
+                                                            }}
+                                                        >
+                                                            Download Invoice
+                                                        </button>
+                                                    </div>
                                                 </td>
-                                                <td>LKR {res.price.toLocaleString()}</td>
+                                                <td>LKR {(res.price || 0).toLocaleString()}</td>
                                                 <td><span style={styles.resBadge}>{res.status}</span></td>
                                                 <td>
-                                                    <button onClick={() => handleDeleteReservation(res._id)} style={styles.deleteBtn}>Delete</button>
+                                                    <button onClick={() => handleDeleteReservation((res._id || res.id))} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -624,7 +624,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {usersList.map(u => (
-                                            <tr key={u._id}>
+                                            <tr key={(u._id || u.id)}>
                                                 <td>
                                                     <div style={{ fontWeight: "800" }}>{u.name}</div>
                                                     <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>{u.email}</div>
@@ -676,14 +676,14 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {rentals.map(r => (
-                                            <tr key={r._id}>
+                                            <tr key={(r._id || r.id)}>
                                                 <td style={{ fontWeight: "700" }}>{r.name}</td>
                                                 <td><span style={styles.badge}>{r.type}</span></td>
                                                 <td>{r.price.toLocaleString()}</td>
                                                 <td style={{ fontSize: "12px", color: "var(--text-dim)" }}>{r.features.join(", ")}</td>
                                                 <td>
                                                     <button onClick={() => openEditRental(r)} style={styles.editBtn}>Edit</button>
-                                                    <button onClick={() => handleDeleteRental(r._id)} style={styles.deleteBtn}>Delete</button>
+                                                    <button onClick={() => handleDeleteRental((r._id || r.id))} style={styles.deleteBtn}>Delete</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -712,7 +712,7 @@ export default function AdminDashboard() {
                                     </thead>
                                     <tbody>
                                         {rentalBookings.map(res => (
-                                            <tr key={res._id}>
+                                            <tr key={(res._id || res.id)}>
                                                 <td style={{ fontSize: "11px", color: "var(--text-dim)" }}>{res.reservationNumber}</td>
                                                 <td style={{ fontSize: "12px" }}>{new Date(res.createdAt).toLocaleDateString()} {new Date(res.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                                                 <td>
@@ -721,7 +721,7 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     {res.rentals.map(r => (
-                                                        <div key={r._id} style={{ fontSize: "12px", fontWeight: "700", color: "var(--primary)", marginBottom: "4px" }}>
+                                                        <div key={(r._id || r.id)} style={{ fontSize: "12px", fontWeight: "700", color: "var(--primary)", marginBottom: "4px" }}>
                                                             {r.rental?.name || "Rental"}
                                                             <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "400" }}>
                                                                 {new Date(r.startDate).toLocaleDateString()} - {new Date(r.endDate).toLocaleDateString()}
@@ -731,7 +731,7 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     <div style={{ fontWeight: "700", fontSize: "12px" }}>{res.paymentMethod}</div>
-                                                    <div style={{ fontSize: "11px" }}>LKR {res.price.toLocaleString()}</div>
+                                                    <div style={{ fontSize: "11px" }}>LKR {(res.price || 0).toLocaleString()}</div>
                                                 </td>
                                                 <td>
                                                     <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
@@ -742,7 +742,7 @@ export default function AdminDashboard() {
                                                         ) : <span style={{ fontSize: "10px", color: "#ccc" }}>No Slip</span>}
 
                                                         <button
-                                                            onClick={() => navigate(`/admin/invoice/${res._id}`)}
+                                                            onClick={() => navigate(`/admin/invoice/${(res._id || res.id)}`)}
                                                             style={{
                                                                 background: "var(--secondary)", color: "white", border: "none",
                                                                 borderRadius: "6px", padding: "4px 8px", fontSize: "10px",
@@ -774,6 +774,67 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === "REPORTS" && (() => {
+                        const monthPrefix = reportMonth;
+                        const validReservations = reservations.filter(r => r.createdAt && r.createdAt.startsWith(monthPrefix) && r.status !== "Cancelled");
+
+                        let totalRevenue = 0;
+                        let totalGuests = 0;
+                        let experiencesBooked = 0;
+                        let rentalsBooked = 0;
+
+                        validReservations.forEach(r => {
+                            totalRevenue += r.price || 0;
+                            totalGuests += r.guests || 1;
+                            if (r.experiences) experiencesBooked += r.experiences.length;
+                            if (r.rentals) rentalsBooked += r.rentals.length;
+                        });
+
+                        return (
+                            <div style={styles.section}>
+                                <div style={{ ...styles.sectionHead, justifyContent: "space-between", alignItems: "center" }}>
+                                    <h2>Monthly Report Overview</h2>
+                                    <div>
+                                        <label style={{ marginRight: "10px", fontWeight: "bold" }}>Select Month: </label>
+                                        <input
+                                            type="month"
+                                            value={reportMonth}
+                                            onChange={(e) => setReportMonth(e.target.value)}
+                                            style={{ padding: "8px", borderRadius: "8px", border: "1px solid #ccc", outline: "none" }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginTop: "20px" }}>
+                                    <div style={{ ...styles.helpCard, textAlign: "center", padding: "30px" }}>
+                                        <h3 style={{ fontSize: "32px", margin: "0 0 10px 0", color: "var(--primary)" }}>{validReservations.length}</h3>
+                                        <p style={{ margin: 0, fontWeight: "bold", color: "var(--text-dim)" }}>Total Reservations</p>
+                                    </div>
+                                    <div style={{ ...styles.helpCard, textAlign: "center", padding: "30px" }}>
+                                        <h3 style={{ fontSize: "32px", margin: "0 0 10px 0", color: "var(--primary)" }}>{totalGuests}</h3>
+                                        <p style={{ margin: 0, fontWeight: "bold", color: "var(--text-dim)" }}>Total Guests</p>
+                                    </div>
+                                    <div style={{ ...styles.helpCard, textAlign: "center", padding: "30px" }}>
+                                        <h3 style={{ fontSize: "32px", margin: "0 0 10px 0", color: "var(--primary)" }}>{experiencesBooked}</h3>
+                                        <p style={{ margin: 0, fontWeight: "bold", color: "var(--text-dim)" }}>Experiences Booked</p>
+                                    </div>
+                                    <div style={{ ...styles.helpCard, textAlign: "center", padding: "30px" }}>
+                                        <h3 style={{ fontSize: "32px", margin: "0 0 10px 0", color: "var(--primary)" }}>{rentalsBooked}</h3>
+                                        <p style={{ margin: 0, fontWeight: "bold", color: "var(--text-dim)" }}>Rentals Booked</p>
+                                    </div>
+                                </div>
+
+                                <div style={{ ...styles.helpCard, marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--primary-light)", border: "1px solid var(--primary)" }}>
+                                    <h3 style={{ margin: 0, color: "var(--primary)", fontSize: "20px" }}>Total Revenue for {monthPrefix}</h3>
+                                    <h2 style={{ margin: 0, color: "var(--primary)", fontSize: "28px" }}>LKR {totalRevenue.toLocaleString()}</h2>
+                                </div>
+                                <div style={{ marginTop: "20px", textAlign: "right" }}>
+                                    <button onClick={() => window.print()} style={{ ...styles.addBtn }}>🖨️ Print Report</button>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {activeTab === "HELP" && (
                         <div style={styles.section}>

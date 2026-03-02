@@ -23,12 +23,19 @@ export default function PaymentPage() {
     const expDate = searchParams.get("expDate");
 
     const [loading, setLoading] = useState(false);
+    const [offerCode, setOfferCode] = useState("");
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [offerMessage, setOfferMessage] = useState("");
+
     const [cardData, setCardData] = useState({
         name: "",
         number: "",
         expiry: "",
         cvc: ""
     });
+
+    const parsedAmount = parseFloat(amount || 0);
+    const finalAmount = parsedAmount - discountAmount;
 
     useEffect(() => {
         if (!amount) {
@@ -51,24 +58,24 @@ export default function PaymentPage() {
         // Simulate Payment Processing Delay
         setTimeout(async () => {
             try {
-                // Create Reservation after successful payment simulation
                 const res = await axios.post(`${API_URL}/api/reservations`, {
-                    roomId: roomId || null,
+                    room: roomId || null,
                     checkIn: checkIn || new Date(),
                     checkOut: checkOut || new Date(),
                     guests: guests || 1,
                     paymentMethod: "CARD",
-                    amount: parseFloat(amount),
+                    amount: finalAmount,
+                    price: finalAmount, // Backend model uses 'price' instead of 'amount'
                     paymentStatus: "PAID",
-                    // New Payload Structure
-                    experiences: experienceIds.map(id => ({ id, date: expDate || new Date() })),
-                    rentals: rentalIds.map(id => ({ id, startDate: startDate || new Date(), endDate: endDate || new Date() }))
+                    // New Payload Structure: backend expects List<String>
+                    experiences: experienceIds,
+                    rentals: rentalIds
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
                 setLoading(false);
-                navigate(`/success/${res.data._id}`);
+                navigate(`/success/${(res.data._id || res.data.id)}`);
             } catch (err) {
                 console.error(err);
                 alert(err.response?.data?.message || "Booking failed after payment. Please contact support.");
@@ -93,6 +100,25 @@ export default function PaymentPage() {
         setCardData({ ...cardData, [name]: value });
     };
 
+    const handleApplyOffer = async () => {
+        if (!offerCode) return;
+        try {
+            const res = await axios.get(`${API_URL}/api/offers/validate/${offerCode}`);
+            const data = res.data;
+            if (data.discountPercentage) {
+                const calculatedDiscount = (parsedAmount * data.discountPercentage) / 100;
+                setDiscountAmount(calculatedDiscount);
+                setOfferMessage(`Offer applied! ${data.discountPercentage}% off`);
+            } else {
+                // If it's valid but no percentage is set in DB yet, maybe just subtract a flat amount or zero
+                setOfferMessage("Valid offer, but no discount amount specified.");
+            }
+        } catch (err) {
+            setOfferMessage(err.response?.data?.message || "Invalid offer code");
+            setDiscountAmount(0);
+        }
+    };
+
     return (
         <Layout>
             <div style={styles.container}>
@@ -103,8 +129,27 @@ export default function PaymentPage() {
                     </div>
 
                     <div style={styles.summary}>
-                        <div style={styles.row}><span>Total Amount</span><span style={styles.amount}>LKR {parseInt(amount || 0).toLocaleString()}</span></div>
+                        <div style={styles.row}><span>Subtotal</span><span style={styles.amountSmall}>LKR {parsedAmount.toLocaleString()}</span></div>
+                        {discountAmount > 0 && <div style={styles.row}><span>Discount</span><span style={styles.discountAmount}>- LKR {discountAmount.toLocaleString()}</span></div>}
+                        <div style={{ ...styles.row, marginTop: "10px", borderTop: "1px dashed #cbd5e1", paddingTop: "10px" }}>
+                            <span>Total Amount</span><span style={styles.amount}>LKR {finalAmount.toLocaleString()}</span>
+                        </div>
                         <div style={styles.rowSmall}>Due Now</div>
+                    </div>
+
+                    <div style={{ marginBottom: "20px" }}>
+                        <label style={styles.label}>Offer Code</label>
+                        <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                            <input
+                                type="text"
+                                placeholder="Enter code"
+                                value={offerCode}
+                                onChange={(e) => setOfferCode(e.target.value)}
+                                style={{ ...styles.input, padding: "10px" }}
+                            />
+                            <button type="button" onClick={handleApplyOffer} style={styles.applyBtn}>Apply</button>
+                        </div>
+                        {offerMessage && <p style={{ fontSize: "12px", color: offerMessage.includes("applied") ? "green" : "red", marginTop: "5px", fontWeight: "bold" }}>{offerMessage}</p>}
                     </div>
 
                     <form onSubmit={handlePayment} style={styles.form}>
@@ -165,7 +210,7 @@ export default function PaymentPage() {
                         </div>
 
                         <button type="submit" disabled={loading} style={loading ? styles.payBtnDisabled : styles.payBtn}>
-                            {loading ? "Processing..." : `Pay LKR ${parseInt(amount).toLocaleString()}`} <FaLock size={12} />
+                            {loading ? "Processing..." : `Pay LKR ${finalAmount.toLocaleString()}`} <FaLock size={12} />
                         </button>
                     </form>
 
@@ -200,10 +245,14 @@ const styles = {
     title: { fontSize: "24px", fontWeight: "900", color: "var(--secondary)", marginBottom: "8px" },
     secureBadge: { display: "inline-flex", alignItems: "center", gap: "6px", background: "#ecfdf5", color: "#059669", padding: "6px 12px", borderRadius: "100px", fontSize: "12px", fontWeight: "700" },
 
-    summary: { background: "#f1f5f9", padding: "20px", borderRadius: "16px", marginBottom: "32px" },
+    summary: { background: "#f1f5f9", padding: "20px", borderRadius: "16px", marginBottom: "20px" },
     row: { display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px", fontWeight: "700", color: "#64748b" },
     rowSmall: { fontSize: "12px", color: "#94a3b8", textAlign: "right", marginTop: "4px" },
+    amountSmall: { fontSize: "16px", fontWeight: "700", color: "#64748b" },
+    discountAmount: { fontSize: "16px", fontWeight: "700", color: "#10b981" },
     amount: { fontSize: "20px", fontWeight: "900", color: "var(--secondary)" },
+
+    applyBtn: { background: "var(--secondary)", color: "white", border: "none", borderRadius: "8px", padding: "10px 15px", fontWeight: "bold", cursor: "pointer" },
 
     form: { display: "flex", flexDirection: "column", gap: "20px" },
     inputGroup: { display: "flex", flexDirection: "column", gap: "8px", flex: 1 },

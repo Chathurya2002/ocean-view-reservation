@@ -37,7 +37,7 @@ export default function ExperiencesPage() {
 
     const handleConfirmBook = () => {
         if (!selectedExp || !expDate) return;
-        navigate(`/payment?amount=${selectedExp.price}&experienceIds=${selectedExp._id}&expDate=${expDate}&type=experience`);
+        navigate(`/payment?amount=${selectedExp.price}&experienceIds=${(selectedExp._id || selectedExp.id)}&expDate=${expDate}&type=experience`);
     };
 
     if (loading) return <Layout><div style={styles.loader}>Exploring local wonders...</div></Layout>;
@@ -56,7 +56,7 @@ export default function ExperiencesPage() {
                 <div style={styles.container}>
                     <div style={styles.grid}>
                         {experiences.map(exp => (
-                            <div key={exp._id} style={styles.card}>
+                            <div key={(exp._id || exp.id)} style={styles.card}>
                                 {/* ... Card Content ... */}
                                 <div style={{ ...styles.cardImg, backgroundImage: `url(${exp.image})` }}>
                                     <div style={styles.priceBadge}>LKR {exp.price.toLocaleString()}</div>

@@ -114,11 +114,11 @@ export default function RoomDetails() {
         const roomTotal = nights * room.price;
 
         const expTotal = experiences
-            .filter(exp => selectedExpIds.includes(exp._id))
+            .filter(exp => selectedExpIds.includes((exp._id || exp.id)))
             .reduce((sum, exp) => sum + exp.price, 0);
 
         const rentalTotal = rentals
-            .filter(rental => selectedRentalIds.includes(rental._id))
+            .filter(rental => selectedRentalIds.includes((rental._id || rental.id)))
             .reduce((sum, rental) => sum + rental.price, 0);
 
         return { nights, total: roomTotal + expTotal + rentalTotal, roomTotal, expTotal, rentalTotal };
@@ -173,7 +173,7 @@ export default function RoomDetails() {
     const proceedToBooking = async () => {
         if (bookingData.paymentMethod === "CARD") {
             // Redirect to Payment Page
-            navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
+            navigate(`/payment?roomId=${(room._id || room.id)}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
         } else {
             // BANK or Cash Payment (Pay at Property)
             const token = localStorage.getItem("token");
@@ -183,29 +183,26 @@ export default function RoomDetails() {
 
     const createReservation = async (token) => {
         try {
-            const formData = new FormData();
-            formData.append("roomId", room._id);
-            formData.append("checkIn", bookingData.checkIn);
-            formData.append("checkOut", bookingData.checkOut);
-            formData.append("paymentMethod", bookingData.paymentMethod);
-            formData.append("guests", bookingData.guests);
+            const payload = {
+                room: (room._id || room.id),
+                checkIn: bookingData.checkIn,
+                checkOut: bookingData.checkOut,
+                paymentMethod: bookingData.paymentMethod,
+                guests: bookingData.guests,
+                price: total,
+                experiences: selectedExpIds,
+                rentals: selectedRentalIds,
+                paymentReceipt: bookingData.paymentReceipt ? "uploaded_receipt_pending_implementation.jpg" : null
+            };
 
-            // Add experience IDs
-            selectedExpIds.forEach(id => formData.append("experienceIds[]", id));
-            selectedRentalIds.forEach(id => formData.append("rentalIds[]", id));
-
-            if (bookingData.paymentReceipt) {
-                formData.append("paymentReceipt", bookingData.paymentReceipt);
-            }
-
-            const res = await axios.post(`${API_URL}/api/reservations`, formData, {
+            const res = await axios.post(`${API_URL}/api/reservations`, payload, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data"
+                    "Content-Type": "application/json"
                 }
             });
 
-            navigate(`/success/${res.data._id}`);
+            navigate(`/success/${(res.data._id || res.data.id)}`);
         } catch (err) {
             alert(err.response?.data?.message || "Booking failed");
         }
@@ -236,7 +233,7 @@ export default function RoomDetails() {
             alert("Profile details updated! Continuing your booking...");
             // Automatically proceed to booking after detail update
             if (bookingData.paymentMethod === "CARD") {
-                navigate(`/payment?roomId=${room._id}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
+                navigate(`/payment?roomId=${(room._id || room.id)}&checkIn=${bookingData.checkIn}&checkOut=${bookingData.checkOut}&guests=${bookingData.guests}&amount=${total}&experienceIds=${selectedExpIds.join(",")}&rentalIds=${selectedRentalIds.join(",")}`);
             } else {
                 await createReservation(token);
             }
@@ -372,13 +369,13 @@ export default function RoomDetails() {
                                 </header>
                                 <div style={styles.expGrid}>
                                     {experiences.map(exp => (
-                                        <div key={exp._id}
+                                        <div key={(exp._id || exp.id)}
                                             style={{
                                                 ...styles.expCard,
-                                                borderColor: selectedExpIds.includes(exp._id) ? 'var(--primary)' : 'var(--border)',
-                                                background: selectedExpIds.includes(exp._id) ? 'var(--primary-light)' : 'white'
+                                                borderColor: selectedExpIds.includes((exp._id || exp.id)) ? 'var(--primary)' : 'var(--border)',
+                                                background: selectedExpIds.includes((exp._id || exp.id)) ? 'var(--primary-light)' : 'white'
                                             }}
-                                            onClick={() => toggleExperience(exp._id)}
+                                            onClick={() => toggleExperience((exp._id || exp.id))}
                                         >
                                             <div style={{ ...styles.expImg, backgroundImage: `url(${exp.image})` }} />
                                             <div style={styles.expContent}>
@@ -392,10 +389,10 @@ export default function RoomDetails() {
                                                     <span style={styles.expPrice}>LKR {exp.price.toLocaleString()}</span>
                                                     <button style={{
                                                         ...styles.addBtn,
-                                                        background: selectedExpIds.includes(exp._id) ? 'var(--primary)' : 'transparent',
-                                                        color: selectedExpIds.includes(exp._id) ? 'white' : 'var(--primary)'
+                                                        background: selectedExpIds.includes((exp._id || exp.id)) ? 'var(--primary)' : 'transparent',
+                                                        color: selectedExpIds.includes((exp._id || exp.id)) ? 'white' : 'var(--primary)'
                                                     }}>
-                                                        {selectedExpIds.includes(exp._id) ? 'Selected' : '+ Add'}
+                                                        {selectedExpIds.includes((exp._id || exp.id)) ? 'Selected' : '+ Add'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -415,13 +412,13 @@ export default function RoomDetails() {
                                 </header>
                                 <div style={styles.expGrid}>
                                     {rentals.map(rental => (
-                                        <div key={rental._id}
+                                        <div key={(rental._id || rental.id)}
                                             style={{
                                                 ...styles.expCard,
-                                                borderColor: selectedRentalIds.includes(rental._id) ? 'var(--primary)' : 'var(--border)',
-                                                background: selectedRentalIds.includes(rental._id) ? 'var(--primary-light)' : 'white'
+                                                borderColor: selectedRentalIds.includes((rental._id || rental.id)) ? 'var(--primary)' : 'var(--border)',
+                                                background: selectedRentalIds.includes((rental._id || rental.id)) ? 'var(--primary-light)' : 'white'
                                             }}
-                                            onClick={() => toggleRental(rental._id)}
+                                            onClick={() => toggleRental((rental._id || rental.id))}
                                         >
                                             <div style={{ ...styles.expImg, backgroundImage: `url(${rental.image})` }} />
                                             <div style={styles.expContent}>
@@ -436,10 +433,10 @@ export default function RoomDetails() {
                                                     <span style={styles.expPrice}>LKR {rental.price.toLocaleString()}</span>
                                                     <button style={{
                                                         ...styles.addBtn,
-                                                        background: selectedRentalIds.includes(rental._id) ? 'var(--primary)' : 'transparent',
-                                                        color: selectedRentalIds.includes(rental._id) ? 'white' : 'var(--primary)'
+                                                        background: selectedRentalIds.includes((rental._id || rental.id)) ? 'var(--primary)' : 'transparent',
+                                                        color: selectedRentalIds.includes((rental._id || rental.id)) ? 'white' : 'var(--primary)'
                                                     }}>
-                                                        {selectedRentalIds.includes(rental._id) ? 'Selected' : '+ Add'}
+                                                        {selectedRentalIds.includes((rental._id || rental.id)) ? 'Selected' : '+ Add'}
                                                     </button>
                                                 </div>
                                             </div>

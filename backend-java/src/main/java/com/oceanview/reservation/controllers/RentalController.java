@@ -23,7 +23,7 @@ public class RentalController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getRentalById(@PathVariable String id) {
+    public ResponseEntity<?> getRentalById(@PathVariable(name="id") String id) {
         Optional<Rental> rental = rentalRepository.findById(id);
         if (rental.isPresent()) {
             return ResponseEntity.ok(rental.get());
@@ -38,7 +38,7 @@ public class RentalController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateRental(@PathVariable String id, @RequestBody Rental updatedRental) {
+    public ResponseEntity<?> updateRental(@PathVariable(name="id") String id, @RequestBody Rental updatedRental) {
         Optional<Rental> rentalOpt = rentalRepository.findById(id);
         if (rentalOpt.isPresent()) {
             Rental existing = rentalOpt.get();
@@ -53,7 +53,7 @@ public class RentalController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRental(@PathVariable String id) {
+    public ResponseEntity<?> deleteRental(@PathVariable(name="id") String id) {
         if (rentalRepository.existsById(id)) {
             rentalRepository.deleteById(id);
             return ResponseEntity.ok("Rental deleted");

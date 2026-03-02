@@ -48,7 +48,7 @@ const InvoiceTemplate = React.forwardRef(({ reservation }, ref) => {
                             <div style={styles.sm}>Room #{room.roomNumber} • {nightCount} Night(s)</div>
                             <div style={styles.sm}>{new Date(checkIn).toLocaleDateString()} - {new Date(checkOut).toLocaleDateString()}</div>
                         </div>
-                        <span>LKR {roomTotal.toLocaleString()}</span>
+                        <span>LKR {(roomTotal || 0).toLocaleString()}</span>
                     </div>
                 )}
 
@@ -82,7 +82,7 @@ const InvoiceTemplate = React.forwardRef(({ reservation }, ref) => {
                                     </div>
                                 )}
                             </div>
-                            <span>LKR {itemTotal.toLocaleString()}</span>
+                            <span>LKR {(itemTotal || 0).toLocaleString()}</span>
                         </div>
                     );
                 })}
@@ -91,7 +91,7 @@ const InvoiceTemplate = React.forwardRef(({ reservation }, ref) => {
             <div style={styles.totalSection}>
                 <div style={styles.totalRow}>
                     <span>Subtotal</span>
-                    <span>LKR {calculatedTotal.toLocaleString()}</span>
+                    <span>LKR {(calculatedTotal || 0).toLocaleString()}</span>
                 </div>
                 <div style={styles.totalRow}>
                     <span>Taxes & Fees</span>
@@ -99,7 +99,7 @@ const InvoiceTemplate = React.forwardRef(({ reservation }, ref) => {
                 </div>
                 <div style={{ ...styles.totalRow, fontSize: "18px", marginTop: "10px", color: "var(--primary)" }}>
                     <span>Total Paid ({paymentMethod})</span>
-                    <span>LKR {price.toLocaleString()}</span>
+                    <span>LKR {(price || 0).toLocaleString()}</span>
                 </div>
             </div>
 

@@ -35,6 +35,22 @@ export default function ProfilePage() {
         }
     };
 
+    const handleCancelReservation = async (id) => {
+        if (!window.confirm("Are you sure you want to cancel this reservation? This action cannot be undone.")) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`${API_URL}/api/reservations/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Reservation cancelled successfully");
+            fetchReservations(token);
+        } catch (err) {
+            console.error("Error cancelling reservation:", err);
+            alert(err.response?.data?.message || "Failed to cancel reservation");
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -78,7 +94,7 @@ export default function ProfilePage() {
                         ) : (
                             <div style={styles.resGrid}>
                                 {reservations.map(res => (
-                                    <div key={res._id} style={styles.resCard}>
+                                    <div key={(res._id || res.id)} style={styles.resCard}>
                                         <div style={styles.resImg} className="res-img-hover">
                                             <img src={res.room?.image} alt={res.room?.name} style={styles.img} />
                                             <div style={styles.resStatus}>{res.status}</div>
@@ -91,15 +107,23 @@ export default function ProfilePage() {
                                             </div>
                                             <div style={styles.resDetail}>
                                                 <FaCreditCard color="#64748b" />
-                                                <span>LKR {res.price.toLocaleString()} via {res.paymentMethod}</span>
+                                                <span>LKR {(res.price || 0).toLocaleString()} via {res.paymentMethod}</span>
                                             </div>
                                             <div style={styles.resNumber}>ID: {res.reservationNumber}</div>
-                                            <button
-                                                onClick={() => window.location.href = `/success/${res._id}`}
-                                                style={styles.viewInvoice}
-                                            >
-                                                View Invoice
-                                            </button>
+                                            <div style={styles.actionButtons}>
+                                                <button
+                                                    onClick={() => window.location.href = `/success/${(res._id || res.id)}`}
+                                                    style={styles.viewInvoice}
+                                                >
+                                                    View Invoice
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCancelReservation(res._id || res.id)}
+                                                    style={styles.cancelBtn}
+                                                >
+                                                    Cancel Booking
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -146,9 +170,11 @@ const styles = {
     resBody: { padding: "20px" },
     roomName: { margin: "0 0 12px 0", fontSize: "18px", fontWeight: "800" },
     resDetail: { display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#475569", marginBottom: "8px" },
-    resNumber: { fontSize: "11px", color: "var(--text-dim)", marginTop: "12px" },
+    resNumber: { fontSize: "11px", color: "var(--text-dim)", marginTop: "12px", marginBottom: "16px" },
 
-    viewInvoice: { width: "100%", marginTop: "16px", padding: "12px", borderRadius: "12px", border: "1px solid var(--primary)", background: "transparent", color: "var(--primary)", fontWeight: "800", cursor: "pointer", transition: "0.2s" },
+    actionButtons: { display: "flex", gap: "10px" },
+    viewInvoice: { flex: 1, padding: "10px", borderRadius: "10px", border: "1px solid var(--primary)", background: "transparent", color: "var(--primary)", fontWeight: "800", cursor: "pointer", transition: "0.2s" },
+    cancelBtn: { flex: 1, padding: "10px", borderRadius: "10px", border: "none", background: "#ef4444", color: "white", fontWeight: "800", cursor: "pointer", transition: "0.2s" },
 
     emptyState: { textAlign: "center", padding: "60px", background: "white", borderRadius: "24px", border: "1px dashed var(--border)" },
     bookNowBtn: { marginTop: "20px", padding: "12px 32px", borderRadius: "14px", border: "none", background: "var(--primary)", color: "white", fontWeight: "800", cursor: "pointer" }

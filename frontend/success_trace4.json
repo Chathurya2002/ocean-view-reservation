@@ -1,0 +1,39 @@
+{
+  "rentals": [
+    {
+      "endDate": "2026-02-18T00:00:00.000+00:00",
+      "days": 1,
+      "startDate": "2026-02-18T00:00:00.000+00:00",
+      "rental": {
+        "price": 3500,
+        "name": "Tuk Tuk (Three Wheeler)",
+        "_id": "699562920e2153680dfcbb7c",
+        "type": "Vehicle"
+      }
+    }
+  ],
+  "experiences": null,
+  "createdAt": "2026-02-18T07:13:37.205+00:00",
+  "driverDetails": {
+    "name": "kasun rathnayaka ",
+    "contact": "0773426786",
+    "vehicleNo": "sp 1234",
+    "status": "PENDING"
+  },
+  "checkIn": "2026-02-18T00:00:00.000+00:00",
+  "price": 3500,
+  "guests": 1,
+  "reservationNumber": "RES-1771398817186-345",
+  "paymentMethod": "CARD",
+  "_id": "699566a18aeef8be8e553b8a",
+  "paymentReceipt": null,
+  "checkOut": "2026-02-18T00:00:00.000+00:00",
+  "user": {
+    "name": "chamath",
+    "contactNumber": "0740266072",
+    "_id": "69919587e07f4af1536e3607",
+    "email": "chamathd2002@gmail.com"
+  },
+  "status": "CONFIRMED",
+  "updatedAt": "2026-02-18T15:36:36.217+00:00"
+}

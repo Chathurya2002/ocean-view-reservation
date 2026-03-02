@@ -8,5 +8,7 @@ import java.util.List;
 
 @Repository
 public interface OfferRepository extends MongoRepository<Offer, String> {
-    List<Offer> findByIsActive(boolean isActive);
+    List<Offer> findByIsActive(Boolean isActive);
+
+    java.util.Optional<Offer> findByDiscountCodeAndIsActive(String discountCode, Boolean isActive);
 }

@@ -54,7 +54,7 @@ export default function RentalsPage() {
 
         // Pass details to payment page
         // Format: rentalIds=id, startDate=date, endDate=date
-        navigate(`/payment?amount=${totalPrice}&rentalIds=${selectedRental._id}&startDate=${rentalDates.startDate}&endDate=${rentalDates.endDate}&type=rental`);
+        navigate(`/payment?amount=${totalPrice}&rentalIds=${(selectedRental._id || selectedRental.id)}&startDate=${rentalDates.startDate}&endDate=${rentalDates.endDate}&type=rental`);
     };
 
     if (loading) return <Layout><div style={styles.loader}>Loading Rentals...</div></Layout>;
@@ -73,7 +73,7 @@ export default function RentalsPage() {
                 <div style={styles.container}>
                     <div style={styles.grid}>
                         {rentals.map(rental => (
-                            <div key={rental._id} style={styles.card}>
+                            <div key={(rental._id || rental.id)} style={styles.card}>
                                 {/* ... Card Content ... */}
                                 <div style={{ ...styles.cardImg, backgroundImage: `url(${rental.image})` }}>
                                     <div style={styles.priceBadge}>LKR {rental.price.toLocaleString()} / day</div>

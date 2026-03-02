@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Document(collection = "reservations")
@@ -24,32 +25,11 @@ public class Reservation {
     private String status = "CONFIRMED"; // "PENDING", "CONFIRMED", "CANCELLED"
     private Integer guests = 1;
 
-    private List<ExperienceBooking> experiences;
-    private List<RentalBooking> rentals;
-    private DriverDetails driverDetails;
+    private List<String> experiences;
+    private List<String> rentals;
+    private Map<String, Object> driverDetails;
 
     private Date createdAt;
     private Date updatedAt;
 
-    @Data
-    public static class ExperienceBooking {
-        private String experience; // Object ID mapping string
-        private Date date;
-    }
-
-    @Data
-    public static class RentalBooking {
-        private String rental; // Object ID mapping string
-        private Date startDate;
-        private Date endDate;
-        private Integer days;
-    }
-
-    @Data
-    public static class DriverDetails {
-        private String name;
-        private String contact;
-        private String vehicleNo;
-        private String status = "PENDING"; // "PENDING", "ASSIGNED"
-    }
 }

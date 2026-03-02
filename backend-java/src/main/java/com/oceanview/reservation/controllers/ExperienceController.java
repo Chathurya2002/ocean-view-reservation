@@ -23,7 +23,7 @@ public class ExperienceController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getExperienceById(@PathVariable String id) {
+    public ResponseEntity<?> getExperienceById(@PathVariable(name="id") String id) {
         Optional<Experience> experience = experienceRepository.findById(id);
         if (experience.isPresent()) {
             return ResponseEntity.ok(experience.get());
@@ -38,7 +38,7 @@ public class ExperienceController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateExperience(@PathVariable String id, @RequestBody Experience updatedExperience) {
+    public ResponseEntity<?> updateExperience(@PathVariable(name="id") String id, @RequestBody Experience updatedExperience) {
         Optional<Experience> expOpt = experienceRepository.findById(id);
         if (expOpt.isPresent()) {
             Experience existing = expOpt.get();
@@ -55,7 +55,7 @@ public class ExperienceController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteExperience(@PathVariable String id) {
+    public ResponseEntity<?> deleteExperience(@PathVariable(name="id") String id) {
         if (experienceRepository.existsById(id)) {
             experienceRepository.deleteById(id);
             return ResponseEntity.ok("Experience deleted");

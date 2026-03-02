@@ -35,7 +35,7 @@ export default function AvailableRooms() {
   }, [query]);
 
   const reserve = (room) => {
-    navigate(`/rooms/${room._id}`);
+    navigate(`/rooms/${(room._id || room.id)}`);
   };
 
   return (
@@ -93,7 +93,7 @@ export default function AvailableRooms() {
             ) : (
               <div style={styles.list}>
                 {rooms.map((r) => (
-                  <div key={r._id} style={styles.roomRow}>
+                  <div key={(r._id || r.id)} style={styles.roomRow}>
                     <div style={styles.imgBlock}>
                       <img src={r.image} alt={r.name} style={styles.roomImg} />
                       <div style={styles.tag}>Sea View</div>

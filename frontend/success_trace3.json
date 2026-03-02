@@ -1,0 +1,29 @@
+{
+  "rentals": null,
+  "experiences": null,
+  "room": {
+    "image": "https://d3prz3jkfh1dmo.cloudfront.net/sites/4/2025/09/kk-beach-accomodation-1.jpg?w=1920&h=800",
+    "roomNumber": "101",
+    "price": 22500,
+    "name": "Standard Coastal Room",
+    "_id": "69915e12760bc44277254601"
+  },
+  "createdAt": "2026-02-15T06:13:10.672+00:00",
+  "driverDetails": null,
+  "checkIn": "2026-02-15T00:00:00.000+00:00",
+  "price": 22500,
+  "guests": 1,
+  "reservationNumber": "RES-1771135990671-408",
+  "paymentMethod": "CARD",
+  "_id": "699163f6760bc4427725466e",
+  "paymentReceipt": null,
+  "checkOut": "2026-02-19T00:00:00.000+00:00",
+  "user": {
+    "name": "janani",
+    "contactNumber": "784325678",
+    "_id": "69915a4b5b0feb282f476191",
+    "email": "hjcchathurya@gmail.com"
+  },
+  "status": "CONFIRMED",
+  "updatedAt": "2026-02-15T06:13:10.672+00:00"
+}
