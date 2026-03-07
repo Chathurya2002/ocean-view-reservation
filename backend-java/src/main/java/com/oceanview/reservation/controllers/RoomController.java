@@ -46,11 +46,38 @@ public class RoomController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRoom);
     }
 
+    @Autowired
+    private com.oceanview.reservation.repositories.ReservationRepository reservationRepository;
+
     @PostMapping("/resync")
     public ResponseEntity<?> resyncRooms() {
-        // A placeholder for the resync rooms logic (if they recreate default rooms).
-        // Since we don't have the original node.js hardcoded array, we can just return
-        // success.
-        return ResponseEntity.ok("Rooms resynced");
+        try {
+            List<Room> allRooms = roomRepository.findAll();
+            List<com.oceanview.reservation.models.Reservation> allReservations = reservationRepository.findAll();
+            java.util.Date now = new java.util.Date();
+
+            for (Room room : allRooms) {
+                boolean isOccupied = false;
+                for (com.oceanview.reservation.models.Reservation res : allReservations) {
+                    if (room.getId().equals(res.getRoom()) && "CONFIRMED".equalsIgnoreCase(res.getStatus())) {
+                        if (res.getCheckIn() != null && res.getCheckOut() != null) {
+                            // If current time is within checkIn and checkOut
+                            if (!now.before(res.getCheckIn()) && now.before(res.getCheckOut())) {
+                                isOccupied = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                room.setIsAvailable(!isOccupied);
+            }
+            roomRepository.saveAll(allRooms);
+            return ResponseEntity.ok(java.util.Collections.singletonMap("message",
+                    "Room statuses successfully synced with active reservations!"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Collections.singletonMap("message", "Failed to sync rooms."));
+        }
     }
 }
